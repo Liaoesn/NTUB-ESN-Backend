@@ -3,9 +3,9 @@ const router = express.Router();
 const pool = require('../../lib/db');
 
 // 獲取使用者列表
-router.get('/list', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const [users] = await db.query('SELECT * FROM `student-project`.`user`');
+        const [users] = await pool.query('SELECT * FROM `student-project`.`user`');
         res.json(users);
     } catch (error) {
         console.error(error);
