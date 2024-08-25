@@ -22,8 +22,12 @@ const createUserInDb = async (userInfo) => {
   const currentYear = currentDate.getFullYear() - 1911; // 將西元年轉為民國年
   const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 獲取月份並補齊兩位
 
-  // 獲取最新的 userno
-  const [result] = await pool.query('SELECT userno FROM `student-project`.`user` ORDER BY userno DESC LIMIT 1');
+  // 獲取當前年份內最新的 userno
+  const [result] = await pool.query(
+    'SELECT userno FROM `student-project`.`user` WHERE userno LIKE ? ORDER BY userno DESC LIMIT 1',
+    [`${currentYear}%`]
+  );
+
   let newUserNo;
   if (result.length > 0) {
     const latestUserNo = result[0].userno;
