@@ -4,13 +4,13 @@ const pool = require('../../lib/db');
 
 
 // 停用使用者
-router.put('/:id', async (req, res) => {
+router.put('/:userno', async (req, res) => {
     try {
-        const userId = req.params.id;
+        const userno = req.params.userno;
         const { state } = req.body;
         const [result] = await pool.query(
-            'UPDATE `student-project`.`user` SET `state` = ? WHERE `id` = ?',
-            [state, userId]
+            'UPDATE `student-project`.`user` SET `state` = ? WHERE `userno` = ?',
+            [state, userno]
         );
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: '未找到使用者' });

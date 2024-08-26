@@ -3,10 +3,10 @@ const router = express.Router();
 const pool = require('../../lib/db');
 
 // 使用者資料
-router.get('/:id', async (req, res) => {
+router.get('/:userno', async (req, res) => {
     try {
-        const userId = req.params.id;
-        const [rows] = await db.query('SELECT * FROM `student-project`.`user` WHERE `id` = ?', [userId]);
+        const userno = req.params.userno;
+        const [rows] = await pool.query('SELECT * FROM `student-project`.`user` WHERE `userno` = ?', [userno]);
         
         if (rows.length === 0) {
             return res.status(404).json({ error: '未找到使用者' });
