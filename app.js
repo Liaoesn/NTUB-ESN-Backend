@@ -10,6 +10,9 @@ const authRoutes = require('./routes/auth');
 const userListRoutes = require('./routes/user/list');
 const userDataRoutes = require('./routes/user/data');
 const userDisableRoutes = require('./routes/user/disable');
+// const proAddRoutes = require('./routes/project/insert');
+const proListRoutes = require('./routes/project/list');
+const proManListRoutes = require('./routes/project/data');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,6 +43,9 @@ app.use('/api/user/list', userListRoutes); // 使用者列表路由
 app.use('/api/user/data', userDataRoutes); // 使用者資料路由
 app.use('/api/user/disable', userDisableRoutes); // 使用者停用路由
 
+// app.use('/api/project/insert', proAddRoutes) // 專案新增路由
+app.use('/api/project/list', proListRoutes) // 專案列表路由
+app.use('/api/project/data', proManListRoutes) // 自己專案列表路由
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
