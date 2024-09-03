@@ -7,7 +7,12 @@ router.get('/', async (req, res) => {
 
     try {
         // 基本查詢語句
-        let query = 'SELECT * FROM `student-project`.`project` WHERE 1=1';
+        let query = `SELECT * FROM \`student-project\`.\`project\` p
+                    JOIN \`student-project\`.\`user\` u
+                    ON p.create_id = u.userno
+                    WHERE 1=1
+                `;
+
         let params = [];
 
         // 根據是否有 year 來構造查詢條件
