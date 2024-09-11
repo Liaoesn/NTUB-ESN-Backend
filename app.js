@@ -10,7 +10,6 @@ const app = express();
 const authRoutes = require('./routes/auth');
 const userListRoutes = require('./routes/user/list');
 const userDataRoutes = require('./routes/user/data');
-const userDisableRoutes = require('./routes/user/disable');
 const userGetRole = require('./routes/user/getRole');
 const userUpdate = require('./routes/user/update');
 
@@ -47,7 +46,6 @@ app.use('/api/auth', authRoutes);  // 認證相關路由
 // 使用者路由
 app.use('/api/user/list', userListRoutes); // 使用者列表路由
 app.use('/api/user/data', userDataRoutes); // 使用者資料路由
-app.use('/api/user/disable', userDisableRoutes); // 使用者停用路由
 app.use('/api/user/getRole', userGetRole); // 權限映射
 app.use('/api/user/update', userUpdate); //使用者更改權限
 
