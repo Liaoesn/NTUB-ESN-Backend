@@ -12,7 +12,8 @@ router.get('/', async (req, res) => {
 
     try{
         // 基本查詢語句
-        let query = `SELECT * FROM \`student-project\`.\`project\` p
+        let query = `SELECT p.*, u.username, LEFT(p.prono, 3) AS prono_prefix
+                     FROM \`student-project\`.\`project\` p
                     JOIN \`student-project\`.\`user\` u
                     ON p.create_id = u.userno
                     WHERE p.create_id = ? 
