@@ -26,4 +26,4 @@ function getRole(input) {
     }
 }
 
-module.exports = getRole;
+module.exports = { roleMap, getRole };

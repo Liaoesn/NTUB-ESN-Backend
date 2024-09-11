@@ -13,7 +13,8 @@ const userDisableRoutes = require('./routes/user/disable');
 // const proAddRoutes = require('./routes/project/insert');
 const proListRoutes = require('./routes/project/list');
 const proManListRoutes = require('./routes/project/data');
-const proUpdateRoutes = require('./routes/project/data');
+const proUpdateRoutes = require('./routes/project/update');
+const userGetRole = require('./routes/user/getRole');
 
 
 app.use(express.json());
@@ -44,11 +45,12 @@ app.use('/api/auth', authRoutes);  // 認證相關路由
 app.use('/api/user/list', userListRoutes); // 使用者列表路由
 app.use('/api/user/data', userDataRoutes); // 使用者資料路由
 app.use('/api/user/disable', userDisableRoutes); // 使用者停用路由
+app.use('/api/user/getRole', userGetRole); 
 
 // app.use('/api/project/insert', proAddRoutes) // 新增專案路由
 app.use('/api/project/list', proListRoutes) // 專案列表路由
 app.use('/api/project/data', proManListRoutes) // 自己專案列表路由
-app.use('/api/project/data', proUpdateRoutes) // 更新專案路由
+app.use('/api/project/update', proUpdateRoutes) // 更新專案路由
 
 
 app.use((err, req, res, next) => {
