@@ -42,6 +42,8 @@ router.get('/', async (req, res) => {
         // 執行查詢
         const [results] = await pool.query(query, params);
 
+
+
         // 返回結果
         res.json(results);
     } catch (error) {
