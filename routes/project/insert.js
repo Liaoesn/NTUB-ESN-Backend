@@ -5,6 +5,13 @@ const pool = require('../lib/db');
 const createProjectInDb = async (ProjectInfo) => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear() - 1911; // 將西元年轉為民國年
+
+    // 判斷學年
+    const augustFirst = new Date(currentDate.getFullYear(), 7, 1); // 7 表示 8 月，因為月份是從 0 開始的
+    if (currentDate < augustFirst) {
+        currentYear -= 1; // 如果今天日期是 8/1 以前，民國年減一
+    }
+
     const currentedu = {
         "博士": "01",
         "二技": "02",
@@ -16,6 +23,7 @@ const createProjectInDb = async (ProjectInfo) => {
 
     const [result] = await pool.query('SELECT prono FROM `student-project`.`project` ORDER BY prono DESC LIMIT 1');
     let newProNo;
+
     if (result.length > 0) {
         const latestUserNo = result[0].prono;
         const latestSequence = latestUserNo % 1000 + 1; // 提取最新的序號部分並加1
