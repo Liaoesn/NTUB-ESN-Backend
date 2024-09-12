@@ -7,7 +7,7 @@ const roleMap = require("../user/roleMap");
 router.get('/', async (req, res) => {
     try {
         // 獲取查詢參數
-        const { username, email, permissions, role } = req.query;
+        const { username, email, permissions, state, role } = req.query;
 
         // 構建基本的 SQL 查詢語句
         let sql = 'SELECT * FROM `student-project`.`user` WHERE 1=1';
@@ -25,6 +25,11 @@ router.get('/', async (req, res) => {
         if(permissions) {
             sql += ' AND permissions = ?';
             params.push(`${permissions}`);
+        }
+
+        if(state) {
+            sql += ' AND state = ?';
+            params.push(`${state}`);
         }
 
         if (role) {
