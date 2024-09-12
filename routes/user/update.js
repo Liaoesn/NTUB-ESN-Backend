@@ -5,6 +5,8 @@ const pool = require('../../lib/db');
 // 更新使用者資訊（包括停用和改權限）
 router.put('/:userno', async (req, res) => {
     try {
+        console.log('request: ');
+        console.log(req.body);
         const userno = req.params.userno;
         const { permissions, state } = req.body;
 
@@ -25,6 +27,7 @@ router.put('/:userno', async (req, res) => {
         query += ' WHERE `userno` = ?';
         values.push(userno);
 
+        console.log(query);
         const [result] = await pool.query(query, values);
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: '未找到使用者' });
