@@ -37,6 +37,36 @@ const createProjectInDb = async (ProjectInfo) => {
 }
 
 // 新增專案
-// router.get('/', (req, res) => {
-    
-// });
+router.get('/', async (req, res) => {
+    try{
+        const { proname, prodescription, startdate, phase1, phase2, enddate, create_id, education } = req.query;
+
+        // 檢查必填欄位是否存在
+        if (!proname || !prodescription || !startdate || !phase1 || !phase2 || !enddate || !create_id || !education) {
+            return res.status(400).json({ message: '所有欄位都是必填的' });
+        }
+
+        const projectInfo = {
+            proname, 
+            prodescription: academic,
+            startdate,
+            phase1,
+            phase2,
+            enddate,
+            create_id,
+            education
+        };
+
+        // 呼叫 createProjectInDb 來新增專案
+        await createProjectInDb(ProjectInfo);
+
+        // 新增成功
+            res.status(201).json({ message: '專案新增成功' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: '伺服器錯誤，無法新增專案' });
+        }
+        
+});
+
+module.exports = router;
