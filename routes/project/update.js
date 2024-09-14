@@ -7,24 +7,51 @@ router.get('/', async (req, res) => {
     // 從請求中獲取要編輯的 prono
     const { editProno } = req.query;
 
-    // 專案名稱, 學年, 學制, 審核方式, 錄取人數, 資料總數, 協作者
-    const { proname, year, academic, review, admissions, teacher } = req.query;
+    // 專案名稱, 學制, 審核方式, 開始日期, 第一階段, 第二階段, 結束日期, 錄取人數, 協作者
+    const { proname, academic, review, startDate, phase1, phase2, endDate, admissions, teacher } = req.query;
     
     let query = '';
     let params = [editProno];
     
     
     try{
+        // 專案名稱
         if (proname){
             query = `Update \`student-project\`.\`project\` set proname = ? where prono = ?`
             params.push(proname);
         }
 
+        // 學制
         if (academic){
             query = `Update \`student-project\`.\`project\` set prodescription = ? where prono = ?`
             params.push(academic);
         }
 
+        // 開始日期
+        if (startDate){
+            query = `Update \`student-project\`.\`project\` set startdate = ? where prono = ?`
+            params.push(academic);
+        }
+
+        // 第一階段
+        if (phase1){
+            query = `Update \`student-project\`.\`project\` set phase1 = ? where prono = ?`
+            params.push(phase1);
+        }
+
+        // 第二階段
+        if (phase2){
+            query = `Update \`student-project\`.\`project\` set phase2 = ? where prono = ?`
+            params.push(phase2);
+        }
+
+        // 結束日期
+        if (endDate){
+            query = `Update \`student-project\`.\`project\` set enddate = ? where prono = ?`
+            params.push(phase2);
+        }
+
+        // 錄取人數
         if (admissions){
             query = `Update \`student-project\`.\`project\` set admissions = ? where prono = ?`
             params.push(admissions);
