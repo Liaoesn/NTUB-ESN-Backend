@@ -19,42 +19,41 @@ const createProjectInDb = async (ProjectInfo) => {
         "四技": "04",
     }
 
-    const eduCode = currentedu[ProjectInfo.education];
+    const eduCode = currentedu[ProjectInfo.prodescription];
 
     const [result] = await pool.query('SELECT prono FROM `student-project`.`project` ORDER BY prono DESC LIMIT 1');
     let newProNo;
 
     if (result.length > 0) {
-        const latestUserNo = result[0].prono;
-        const latestSequence = latestUserNo % 1000 + 1; // 提取最新的序號部分並加1
-        newProNo = parseInt(`${currentYear}${eduCode}${String(latestSequence).padStart(3, '0')}`);
+        const latestProNo = result[0].prono;
+        const latestSequence = latestProNo % 1000 + 1; // 提取最新的序號部分並加1
+        newProNo = `${currentYear}${eduCode}${String(latestSequence).padStart(3, '0')}`;
     } else {
         newProNo = `${currentYear}${eduCode}001`;
     }
     await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, phase2, enddate, create_id, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        newProNo, ProjectInfo.name, ProjectInfo.description, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.phase2, ProjectInfo.enddate, ProjectInfo.id, '開放中'
+        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.phase2, ProjectInfo.enddate, ProjectInfo.create_id, '開放中'
     ]);
 }
 
 // 新增專案
-router.get('/', async (req, res) => {
+router.get('/add', async (req, res) => {
     try{
-        const { proname, prodescription, startdate, phase1, phase2, enddate, create_id, education } = req.query;
+        const { proname, prodescription, startdate, phase1, phase2, enddate, create_id } = req.query;
 
         // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !startdate || !phase1 || !phase2 || !enddate || !create_id || !education) {
+        if (!proname || !prodescription || !startdate || !phase1 || !phase2 || !enddate || !create_id ) {
             return res.status(400).json({ message: '所有欄位都是必填的' });
         }
 
-        const projectInfo = {
+        const ProjectInfo = {
             proname, 
-            prodescription: academic,
+            prodescription,
             startdate,
             phase1,
             phase2,
             enddate,
-            create_id,
-            education
+            create_id
         };
 
         // 呼叫 createProjectInDb 來新增專案
