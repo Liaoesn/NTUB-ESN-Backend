@@ -13,7 +13,7 @@ const userDataRoutes = require('./routes/user/data');
 const userGetRole = require('./routes/user/getRole');
 const userUpdate = require('./routes/user/update');
 
-// const proAddRoutes = require('./routes/project/insert');
+const proAddRoutes = require('./routes/project/insert');
 const proListRoutes = require('./routes/project/list');
 const proManListRoutes = require('./routes/project/data');
 const proUpdateRoutes = require('./routes/project/update');
@@ -49,7 +49,8 @@ app.use('/api/user/data', userDataRoutes); // 使用者資料路由
 app.use('/api/user/getRole', userGetRole); // 權限映射
 app.use('/api/user/update', userUpdate); //使用者更改權限
 
-// app.use('/api/project/insert', proAddRoutes) // 新增專案路由
+// 專案路由
+app.use('/api/project/insert', proAddRoutes); // 新增專案路由
 app.use('/api/project/list', proListRoutes) // 專案列表路由
 app.use('/api/project/data', proManListRoutes) // 自己專案列表路由
 app.use('/api/project/update', proUpdateRoutes) // 更新專案路由

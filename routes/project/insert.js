@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../lib/db');
+const pool = require('../../lib/db');
 
 const createProjectInDb = async (ProjectInfo) => {
     const currentDate = new Date();
@@ -31,18 +31,18 @@ const createProjectInDb = async (ProjectInfo) => {
     } else {
         newProNo = `${currentYear}${eduCode}001`;
     }
-    await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, phase2, enddate, create_id, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.phase2, ProjectInfo.enddate, ProjectInfo.create_id, '開放中'
+    await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, phase2, enddate, create_id, state, admissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.phase2, ProjectInfo.enddate, ProjectInfo.create_id, '開放中', ProjectInfo.admissions
     ]);
 }
 
 // 新增專案
-router.get('/add', async (req, res) => {
+router.get('/', async (req, res) => {
     try{
-        const { proname, prodescription, startdate, phase1, phase2, enddate, create_id } = req.query;
+        const { proname, prodescription, startdate, phase1, phase2, enddate, create_id, admissions  } = req.query;
 
         // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !startdate || !phase1 || !phase2 || !enddate || !create_id ) {
+        if (!proname || !prodescription || !startdate || !phase1 || !phase2 || !enddate || !create_id || !admissions ) {
             return res.status(400).json({ message: '所有欄位都是必填的' });
         }
 
@@ -53,7 +53,8 @@ router.get('/add', async (req, res) => {
             phase1,
             phase2,
             enddate,
-            create_id
+            create_id,
+            admissions
         };
 
         // 呼叫 createProjectInDb 來新增專案
