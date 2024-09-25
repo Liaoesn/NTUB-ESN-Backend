@@ -42,7 +42,7 @@ router.get('/name', async (req, res) => {
 });
 
 // 第一階段, 結束日期
-router.get('/phase1', async (req, res) => {
+router.get('/date', async (req, res) => {
     const { phase1, endDate } = req.query;
 
     let query = 'Update \`student-project\`.\`project\` set ';
@@ -75,35 +75,6 @@ router.get('/phase1', async (req, res) => {
     res.json({ message: '更新成功', result });
 });
 
-
-// 結束日期
-router.get('/enddate', async (req, res) => {
-    const { endDate } = req.query;
-
-    let query = 'Update \`student-project\`.\`project\` set ';
-    let params = [];
-
-    try{
-
-        if (endDate){
-            query = `enddate = ?`
-            params.push(endDate);
-        }
-
-    }catch (error) {
-        console.error('Error in database query:', error);
-        res.status(500).send('Error fetching project data');
-    }
-
-    // 確保有查詢和參數
-    if (!query) {
-        return res.status(400).send('No update parameters provided');
-    }
-
-    // 執行查詢
-    const [result] = await pool.query(query, params);
-    res.json({ message: '更新成功', result });
-});
 
 // 錄取人數
 router.get('/admissions', async (req, res) =>{
