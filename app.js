@@ -18,6 +18,9 @@ const proListRoutes = require('./routes/project/list');
 const proManListRoutes = require('./routes/project/data');
 const proUpdateRoutes = require('./routes/project/update');
 
+const scoreSort = require('./routes/score/sort');
+const scoreStudent = require('./routes/score/student');
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,6 +57,10 @@ app.use('/api/project/insert', proAddRoutes); // 新增專案路由
 app.use('/api/project/list', proListRoutes) // 專案列表路由
 app.use('/api/project/data', proManListRoutes) // 自己專案列表路由
 app.use('/api/project/update', proUpdateRoutes) // 更新專案路由
+
+// 評分排序路由
+app.use('/api/score/sort', scoreSort); // 協作老師排序
+app.use('/api/score/student', scoreStudent); // 學生資料展示
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
