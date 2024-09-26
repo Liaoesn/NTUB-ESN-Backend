@@ -7,12 +7,12 @@ router.get('/', async (req, res) => {
         return res.status(401).send('User not authenticated');
     }
     
-    const { year, academic, page = 1 } = req.query;
+    const { year, academic } = req.query;
     const userno = req.session.user.userno; // 從 session 中取得 userno
 
     try{
         // 基本查詢語句
-        let query = `SELECT p.*, u.username, LEFT(p.prono, 3) AS prono_prefix
+        let query = `SELECT CEILING(COUNT(*) / 5) as page 
                     FROM \`student-project\`.\`project\` p
                     JOIN \`student-project\`.\`user\` u
                     ON p.create_id = u.userno
@@ -33,20 +33,13 @@ router.get('/', async (req, res) => {
             params.push(academic);
         }
 
-
-        // 分頁設定
-        const pageSize = 5;
-        const offset = (page - 1) * pageSize;
-        query += ' LIMIT ? OFFSET ?';
-        params.push(pageSize, offset);
-
         // 執行查詢
         const [results] = await pool.query(query, params);
 
 
 
         // 返回結果
-        res.json(results);
+        res.json(results[0]);
     } catch (error) {
         console.error('Error in database query:', error);
         res.status(500).send('Error fetching project data');
