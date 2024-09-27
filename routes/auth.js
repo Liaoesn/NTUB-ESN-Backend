@@ -38,14 +38,14 @@ const createUserInDb = async (userInfo) => {
   }
 
   await pool.query('INSERT INTO `student-project`.`user` (userno, username, avatar_url, email, permissions, state) VALUES (?, ?, ?, ?, ?, ?)', [
-    newUserNo, userInfo.name, userInfo.picture, userInfo.email, 0, '使用中'
+    newUserNo, userInfo.name, userInfo.picture, userInfo.email, 0, '1'
   ]);
 
   return {
     ...userInfo,
     userno: newUserNo,
     permissions: 0,
-    state: '使用中',
+    state: '1',
   };
 };
 
