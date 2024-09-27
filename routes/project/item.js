@@ -11,7 +11,7 @@ router.get('/:prono', async (req, res) => {
             SELECT * 
             FROM \`student-project\`.project p
             JOIN student s ON p.prono = s.prono
-            JOIN studetails sd ON s.stuno = sd.stuno
+            LEFT JOIN studetails sd ON s.stuno = sd.stuno
             JOIN autobiography au ON s.stuno = au.stuno
             JOIN \`resume\` r ON s.stuno = r.stuno
             WHERE p.prono = ?;
