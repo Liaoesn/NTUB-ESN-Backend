@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-router.delete('/', async (req, res) => {
+router.put('/', async (req, res) => {
+    console.log('Received body:', req.body);  // 確認 `prono` 是否正確傳遞
 
-    const { prono } = req.params;
+    const { prono } = req.body;
 
     try {
         const query = 'DELETE FROM `student-project`.`project` WHERE prono = ?';
@@ -21,3 +22,5 @@ router.delete('/', async (req, res) => {
     }
 
 });
+
+module.exports = router;
