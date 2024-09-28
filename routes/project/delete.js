@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-router.get('/', async (req, res) => {
+router.delete('/', async (req, res) => {
 
     const { prono } = req.params;
 
     try {
         const query = 'DELETE FROM `student-project`.`project` WHERE prono = ?';
-        const [result] = await db.execute(query, [prono]);
+        const [result] = await pool.execute(query, [prono]);
 
         if (result.affectedRows > 0) {
             return res.status(200).json({ message: '專案已成功刪除' });
