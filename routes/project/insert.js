@@ -36,6 +36,28 @@ const createProjectInDb = async (ProjectInfo) => {
     ]);
 }
 
+const addStudentInDb = async (prono) => {
+    // 從 student table 取得該 prono 下最新的 stuno
+    const [result] = await pool.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ? ORDER BY stuno DESC LIMIT 1', [prono]);
+    let newStuNo;
+
+    if (result.length > 0) {
+        // 提取 stuno 的數字部分，將其轉為數字並加1
+        const latestStuNo = result[0].stuno;
+        const latestSequence = parseInt(latestStuNo.slice(-3)) + 1; // 取最後三位數字並加1
+        newStuNo = `${prono}S${String(latestSequence).padStart(3, '0')}`;
+    } else {
+        // 如果沒有任何記錄，從 S100 開始
+        newStuNo = `${prono}S100`;
+    }
+
+    // 將 stuno 和 prono 插入到 student 資料表
+    await pool.query('INSERT INTO `student-project`.`student` (stuno, prono) VALUES (?, ?)', [newStuNo, prono]);
+
+    return newStuNo; // 回傳新產生的 stuno
+}
+
+
 // 新增專案
 router.get('/', async (req, res) => {
     try{
@@ -67,5 +89,27 @@ router.get('/', async (req, res) => {
         }
         
 });
+
+// student table
+router.post('/addStudent', async (req, res) => {
+    try {
+        const { prono } = req.body;
+
+        // 檢查必填欄位是否存在
+        if (!prono) {
+            return res.status(400).json({ message: 'prono 是必填的' });
+        }
+
+        // 呼叫 addStudentInDb 來新增學生，並取得新生成的 stuno
+        const newStuNo = await addStudentInDb(prono);
+
+        // 新增成功，回傳新 stuno
+        res.status(201).json({ message: '學生新增成功', stuno: newStuNo });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: '伺服器錯誤，無法新增學生' });
+    }
+});
+
 
 module.exports = router;
