@@ -26,10 +26,10 @@ const createProjectInDb = async (ProjectInfo) => {
 
     if (result.length > 0) {
         const latestProNo = result[0].prono;
-        const latestSequence = latestProNo % 1000 + 1; // 提取最新的序號部分並加1
-        newProNo = `${currentYear}${eduCode}${String(latestSequence).padStart(3, '0')}`;
+        const latestSequence = latestProNo % 10 + 1; // 提取最新的序號部分並加1
+        newProNo = `${currentYear}${eduCode}${latestSequence}`;
     } else {
-        newProNo = `${currentYear}${eduCode}001`;
+        newProNo = `${currentYear}${eduCode}`;
     }
     await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
         newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.create_id, '開放中', ProjectInfo.admissions
