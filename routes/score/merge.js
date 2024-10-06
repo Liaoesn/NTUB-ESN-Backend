@@ -35,42 +35,36 @@ router.post('/merge', async (req, res) => {
   const { prono } = req.body; // 獲取 prono
 
   try {
-    // Step 1: 查找所有協作老師
-    const collaboratorQuery = 'SELECT colno, userno FROM `student-project`.`collaborator` WHERE prono = ?';
-    const collaborators = await query(collaboratorQuery, [prono]);
-
-    if (collaborators.length === 0) {
-      return res.status(404).json({ error: '找不到協作老師記錄' });
-    }
-    // 提取所有的 colno，並構造一個陣列
-    const colnos = collaborators.map(c => c.colno);
-
-    const assignmentQuery = 'SELECT assno FROM `student-project`.`assignment` WHERE colno IN (?)';
-    const assignment = await query(assignmentQuery, [colnos]);
-
-    if (assignment.length === 0) {
-        return res.status(404).json({ error: '找不到分配記錄' });
-    }
-
-    // Step 2: 對每個協作老師，獲取他們排序的學生
+    // 獲取每位協作老師排序的學生
     const sortedLists = [];
+    
+    // 獲取所有協作老師的 colno
+    const collaborators = await query(`SELECT colno FROM collaborator WHERE prono = ?`, [prono]); 
+
     for (const collaborator of collaborators) {
       const colno = collaborator.colno;
-      const evaluationsQuery = 'SELECT stuno FROM `student-project`.`evaluations` WHERE colno = ? ORDER BY ranking ASC';
-      const evaluations = await query(evaluationsQuery, [colno]);
-      const studentList = evaluations.map(evaluation => evaluation.student_id);
+      const evaluationsQuery = `
+        SELECT s.stuno
+        FROM \`student-project\`.evaluations e
+        JOIN assignment a ON e.assno = a.assno
+        JOIN collaborator c ON a.colno = c.colno
+        JOIN student s ON a.stuno = s.stuno
+        WHERE c.prono = ?
+        ORDER BY e.ranking ASC`;
+
+      const evaluations = await query(evaluationsQuery, [prono]); // 使用 prono 作為參數
+      const studentList = evaluations.map(evaluation => evaluation.stuno); // 確保使用正確的字段
       sortedLists.push(studentList);
     }
 
-
-    // Step 3: 合併排序
+    // 合併排序
     const finalRankingList = mergeRankings(sortedLists);
 
-    // Step 4: 插入新的合併排序結果
-    const insertPromises = finalRankingList.map((student_id, index) => {
+    // 插入或更新最終的合併排序結果
+    const insertPromises = finalRankingList.map((stuno, index) => {
       const final_rank = index + 1;
-      const insertQuery = 'INSERT INTO `student-project`.`final_rankings` (student_id, final_rank) VALUES (?, ?)';
-      return query(insertQuery, [student_id, final_rank]);
+      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ? WHERE stuno = ?';
+      return query(updateQuery, [final_rank, stuno]);
     });
 
     await Promise.all(insertPromises);
