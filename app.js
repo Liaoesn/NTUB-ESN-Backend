@@ -21,6 +21,7 @@ const proManListRoutes = require('./routes/project/data');
 const proManPageRoutes = require('./routes/project/dataPage');
 const proUpdateRoutes = require('./routes/project/update');
 const proDeleteRoutes = require('./routes/project/delete');
+const proItemRoute = require('./routes/project/item');
 
 const scoreSort = require('./routes/score/sort');
 const scoreStudent = require('./routes/score/student');
@@ -65,6 +66,7 @@ app.use('/api/project/data', proManListRoutes) // 自己專案列表路由
 app.use('/api/project/dataPage', proManPageRoutes) // 自己專案列表路由
 app.use('/api/project/update', proUpdateRoutes) // 更新專案路由
 app.use('/api/project/delete', proDeleteRoutes)  //  刪除專案路由
+app.use('/api/project/item', proItemRoute)  //  歷史專案內容路由
 
 // 評分排序路由
 app.use('/api/score/sort', scoreSort); // 協作老師排序

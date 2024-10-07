@@ -23,7 +23,7 @@ router.put('/', async (req, res) => {
             const colnoList = colnoResults.map(row => row.colno);
             if (colnoList.length > 0) {
                 const deleteAssignmentQuery = 'DELETE FROM `student-project`.`assignment` WHERE colno IN (?)';
-                const deleteEvalutionsQuery = 'DELETE FROM `student-project`.`evalutions` WHERE colno IN (?)';
+                const deleteEvalutionsQuery = 'DELETE FROM `student-project`.`evaluations` WHERE colno IN (?)';
 
                 const [resultAssignment] = await pool.execute(deleteAssignmentQuery, [colnoList]);
                 const [resultEvalutions] = await pool.execute(deleteEvalutionsQuery, [colnoList]);

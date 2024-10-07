@@ -16,7 +16,9 @@ router.get('/:prono', async (req, res) => {
         const [autRows] = await pool.query('SELECT * FROM `student-project`.autobiography WHERE stuno IN (?)', [stunoList]);
         const [detRows] = await pool.query('SELECT * FROM `student-project`.studetails WHERE stuno IN (?)', [stunoList]);
         const colno = colRows.map(collaborator => collaborator.colno);
-        const [evaRows] = await pool.query('SELECT * FROM `student-project`.evalutions WHERE colno IN (?) ORDER BY evano', [colno]);
+        const [assRows] = await pool.query('SELECT * FROM `student-project`.assignment WHERE colno IN (?)', [colno])
+        const assno = assRows.map(assignment => assignment.assno);
+        const [evaRows] = await pool.query('SELECT * FROM `student-project`.evaluations WHERE assno IN (?) ORDER BY evano', [assno]);
 
         // 返回查詢結果
         res.json({

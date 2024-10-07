@@ -35,8 +35,8 @@ router.post('/submit', async (req, res) => {
     const assno = assnoResults[0].assno;
 
     // Step 3: 按照 evano 查找 evaluations 表中的資料
-    const evalQuery = 'SELECT * FROM `student-project`.`evaluations` WHERE assno = ? AND colno = ? ORDER BY evano';
-    const evalResults = await query(evalQuery, [assno, colno]);
+    const evalQuery = 'SELECT * FROM `student-project`.`evaluations` WHERE assno = ? ORDER BY evano';
+    const evalResults = await query(evalQuery, [assno]);
 
     // Step 4: 更新每個排序後的 evaluation，逐條更新 ranking
     for (let i = 0; i < evalResults.length; i++) {
