@@ -67,7 +67,7 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
 
 // 提交合併排序並分配分數
 router.post('/merge', async (req, res) => {
-  const { prono, minScore, maxScore } = req.body; // 從前端獲取 prono 和分數範圍
+  const { prono} = req.body; // 從前端獲取 prono 和分數範圍
 
   try {
     // 1. 獲取錄取人數
@@ -106,8 +106,8 @@ router.post('/merge', async (req, res) => {
     // 4. 合併排序
     const finalRankingList = mergeRankings(sortedLists);
 
-    // 5. 分配分數（假設最高分 100，最低分 60，可從前端設置 minScore 和 maxScore）
-    const scores = distributeScores(minScore, maxScore, finalRankingList.length);
+    // 5. 分配分數（假設最高分 90，最低分 70）
+    const scores = distributeScores(70, 90, finalRankingList.length);
 
     // 6. 插入或更新合併排序結果及其分數
     const insertPromises = finalRankingList.map((stuno, index) => {
