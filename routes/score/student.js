@@ -6,7 +6,7 @@ const pool = require('../../lib/db');
 router.get('/:prono', async (req, res) => {
     try {
         const prono = req.params.prono;
-        const { userno } = req.body;
+        const { userno } = req.query;
 
         const [proRows] = await pool.query('SELECT phase1, state  FROM `student-project`.project WHERE prono = ?', [prono]);
         const [colRows] = await pool.query('SELECT colno FROM `student-project`.collaborator WHERE prono = ? AND userno = ?', [prono, userno]);
@@ -16,7 +16,7 @@ router.get('/:prono', async (req, res) => {
         const [autRows] = await pool.query('SELECT * FROM `student-project`.autobiography WHERE stuno IN (?)', [stunoList]);
         const [detRows] = await pool.query('SELECT * FROM `student-project`.studetails WHERE stuno IN (?)', [stunoList]);
         const colno = colRows.map(collaborator => collaborator.colno);
-        const [assRows] = await pool.query('SELECT * FROM `student-project`.assignment WHERE colno IN (?)', [colno])
+        const [assRows] = await pool.query('SELECT * FROM `student-project`.assignment WHERE colno IN (?)', [colno]);
         const assno = assRows.map(assignment => assignment.assno);
         const [evaRows] = await pool.query('SELECT * FROM `student-project`.evaluations WHERE assno IN (?) ORDER BY evano', [assno]);
 
