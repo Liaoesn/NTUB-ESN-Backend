@@ -12,11 +12,20 @@ const query = (sql, params) => {
   });
 };
 
-/**
- * 合併排序函數：按輪流取用的方式合併多個排序列表
- * @param {Array<Array>} lists - 多個排序好的學生列表，每個列表由一位協作老師排序
- * @returns {Array} - 合併後的最終排序列表
- */
+// 等距分配分數函數
+function distributeScores(min, max, numberOfPeople) {
+  const scores = [];
+  const step = (max - min) / (numberOfPeople - 1); // 每個人之間的分數差
+
+  for (let i = 0; i < numberOfPeople; i++) {
+    const score = max - i * step; // 根據順序，從高到低分配
+    scores.push(parseFloat(score.toFixed(2))); // 保存分數，保留兩位小數(轉換為浮點數)
+  }
+
+  return scores;
+}
+
+// 合併排序函數：按輪流取用的方式合併多個排序列表
 const mergeRankings = (lists) => {
   const merged = [];
   const maxLength = Math.max(...lists.map(list => list.length));
@@ -30,11 +39,7 @@ const mergeRankings = (lists) => {
   return merged;
 };
 
-/**
- * 檢查錄取公平性
- * @param {string} prono - 專案編號
- * @param {number} admissionCount - 錄取學生數量
- */
+// 檢查錄取公平性
 const checkAdmissionFairness = async (prono, admissionCount) => {
   // 1. 獲取協作老師總數
   const collaboratorQuery = 'SELECT COUNT(*) AS collaboratorCount FROM `student-project`.collaborator WHERE prono = ?';
@@ -60,15 +65,15 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
   }
 };
 
-// 提交合併排序
+// 提交合併排序並分配分數
 router.post('/merge', async (req, res) => {
-  const { prono } = req.body; // 從前端獲取 prono
+  const { prono} = req.body; // 從前端獲取 prono 和分數範圍
 
   try {
-    // 1. 從資料庫中獲取錄取人數
+    // 1. 獲取錄取人數
     const projectQuery = 'SELECT admission FROM `student-project`.project WHERE prono = ?';
     const projectResult = await query(projectQuery, [prono]);
-    const admissionCount = projectResult[0].admission; // 取得錄取人數
+    const admissionCount = projectResult[0].admission;
 
     // 2. 檢查錄取公平性
     const fairnessCheck = await checkAdmissionFairness(prono, admissionCount);
@@ -101,16 +106,20 @@ router.post('/merge', async (req, res) => {
     // 4. 合併排序
     const finalRankingList = mergeRankings(sortedLists);
 
-    // 5. 插入或更新最終的合併排序結果
+    // 5. 分配分數（假設最高分 90，最低分 70）
+    const scores = distributeScores(70, 90, finalRankingList.length);
+
+    // 6. 插入或更新合併排序結果及其分數
     const insertPromises = finalRankingList.map((stuno, index) => {
       const final_rank = index + 1;
-      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ? WHERE stuno = ?';
-      return query(updateQuery, [final_rank, stuno]);
+      const score = scores[index]; // 根據排序位置分配的分數
+      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ? WHERE stuno = ?';
+      return query(updateQuery, [final_rank, score, stuno]);
     });
 
     await Promise.all(insertPromises);
 
-    res.json({ success: true, message: '合併排序成功儲存' });
+    res.json({ success: true, message: '合併排序和分數分配成功儲存' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: '伺服器錯誤' });
