@@ -24,7 +24,7 @@ router.post('/:prono', async (req, res) => {
         
 
         // 返回查詢結果
-        res.json({ data: rows });
+        res.json({ rows });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: '獲取資料失敗' });
