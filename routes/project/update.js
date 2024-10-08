@@ -4,19 +4,25 @@ const pool = require('../../lib/db');
 
 
 router.get('/:prono', async (req, res) => {
-   try {
+  try {
     const { prono } = req.query;
-    const docnumber = await pool.query('SELECT COUNT(*) AS total_students FROM `student-project`.`student` WHERE `prono` = ? ;', [prono])
-    const [ProjectRows] = 
+    const docnumber = await pool.query(
+      'SELECT COUNT(*) AS total_students FROM `student-project`.`student` WHERE `prono` = ? ;', [prono]
+    )
+    const [teacher] = await pool.query(
+    'SELECT  u.username FROM `student-project`.collaborator as c left JOIN `student-project`.user as u ON c.userno = u.userno WHERE c.prono = ?;', [prono]
+    )
+    const [ProjectRows] =
       await pool.query(
         'SELECT prono, proname, prodescription, phase1, endDate, share_type, admissions FROM `student-project`.project WHERE `prono` = ? ;', [prono]);
-    ProjectRows.push({'docnumber':docnumber})
-    console.log(ProjectRows[1])
+    ProjectRows.push(docnumber[0][0])
+    ProjectRows.push({'teachers':teacher})
+    console.log(ProjectRows)
     if (ProjectRows.length === 0) {
       return res.status(404).json({ error: '未找到此專案' });
     }
-    
-    res.json(ProjectRows.push({'docnumber':docnumber[0]}));
+
+    res.json(ProjectRows);
   } catch (error) {
     console.error('查詢資料時發生錯誤:', error);
     res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
