@@ -65,13 +65,17 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
   }
 };
 
+function weightedRanking(evaluations, weightKey = 'weight') {
+  return evaluations.sort((a, b) => b[weightKey] - a[weightKey]);
+}
+
 // 提交合併排序並分配分數
 router.post('/merge', async (req, res) => {
-  const { prono} = req.body; // 從前端獲取 prono 和分數範圍
+  const { prono } = req.body; // 從前端獲取 prono 和分數範圍
 
   try {
     // 1. 獲取錄取人數
-    const projectQuery = 'SELECT admission FROM `student-project`.project WHERE prono = ?';
+    const projectQuery = 'SELECT admission, share_type FROM `student-project`.project WHERE prono = ?';
     const projectResult = await query(projectQuery, [prono]);
     const admissionCount = projectResult[0].admission;
 
@@ -103,8 +107,17 @@ router.post('/merge', async (req, res) => {
       sortedLists.push(studentList);
     }
 
-    // 4. 合併排序
-    const finalRankingList = mergeRankings(sortedLists);
+    // 4.處理合併排序
+    const share_type = projectResult[0].share_type; // 獲取 share_type
+    let finalRankingList = [];
+    if (share_type === 1) {
+        // 平均分配：簡單合併並均勻分配
+        finalRankingList = mergeRankings(sortedLists);
+    } else if (share_type === 2) {
+        // 全部分配：加權排名
+        const allEvaluations = sortedLists.flatMap(list => list);
+        finalRankingList = weightedRanking(allEvaluations).map(evaluation => evaluation.stuno);
+    }
 
     // 5. 分配分數（假設最高分 90，最低分 70）
     const scores = distributeScores(70, 90, finalRankingList.length);
