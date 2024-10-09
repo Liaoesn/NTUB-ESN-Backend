@@ -6,16 +6,16 @@ const pool = require('../../lib/db');
 router.post('/:prono', async (req, res) => {
     try {
         const prono = req.params.prono;
-        const { userno } = req.body;
+        const userno = req.session.user.userno; // 從 session 中取得 userno
 
         const [rows] = await pool.query(`
-            SELECT *
+            SELECT  *
             FROM \`student-project\`.project p
             LEFT JOIN collaborator c ON p.prono = c.prono AND c.userno = ?
             LEFT JOIN student s ON p.prono = s.prono
             LEFT JOIN resume r ON s.stuno = r.stuno
-			LEFT JOIN autobiography au ON s.stuno = au.stuno
-			LEFT JOIN studetails d ON s.stuno = d.stuno
+            LEFT JOIN autobiography au ON s.stuno = au.stuno
+            LEFT JOIN studetails d ON s.stuno = d.stuno
             LEFT JOIN assignment a ON c.colno = a.colno AND s.stuno = a.stuno
             LEFT JOIN evaluations e ON a.assno = e.assno
             WHERE p.prono = ?
