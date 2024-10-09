@@ -6,7 +6,7 @@ const pool = require('../../lib/db');
 router.post('/:prono', async (req, res) => {
     try {
         const prono = req.params.prono;
-        const { userno } = req.query;
+        const { userno } = req.body;
 
         const [rows] = await pool.query(`
             SELECT *
