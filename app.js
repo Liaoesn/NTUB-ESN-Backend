@@ -25,6 +25,8 @@ const proItemRoute = require('./routes/project/item');
 
 const scoreSort = require('./routes/score/sort');
 const scoreStudent = require('./routes/score/student');
+const scoreMerge = require('./routes/score/merge');
+const scoreFinalList = require('./routes/score/finalList');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -71,6 +73,8 @@ app.use('/api/project/item', proItemRoute)  //  歷史專案內容路由
 // 評分排序路由
 app.use('/api/score/sort', scoreSort); // 協作老師排序
 app.use('/api/score/student', scoreStudent); // 學生資料展示
+app.use('/api/score/merge', scoreMerge); // 合併排序
+app.use('/api/score/finalList', scoreFinalList); //最終名單
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
