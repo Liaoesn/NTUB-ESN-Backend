@@ -70,12 +70,12 @@ function weightedRanking(evaluations, weightKey = 'weight') {
 }
 
 // 提交合併排序並分配分數
-router.post('/merge', async (req, res) => {
+router.post('/', async (req, res) => {
   const { prono } = req.body; // 從前端獲取 prono 和分數範圍
 
   try {
     // 1. 獲取錄取人數
-    const projectQuery = 'SELECT admission, share_type FROM `student-project`.project WHERE prono = ?';
+    const projectQuery = 'SELECT admissions, share_type FROM `student-project`.project WHERE prono = ?';
     const projectResult = await query(projectQuery, [prono]);
     const admissionCount = projectResult[0].admission;
 
