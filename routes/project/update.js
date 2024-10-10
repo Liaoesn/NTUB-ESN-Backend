@@ -215,9 +215,10 @@ if (!changeUser || !prono) {
 
 try {
   const [alreadyRows] = await pool.query(
-    'SELECT userno FROM `student-project`.collaborator WHERE prono = ?', [prono]
+    'SELECT colno,userno FROM `student-project`.collaborator WHERE prono = ?', [prono]
   );
   const already = alreadyRows.map(row => row.userno);
+  const allcolno = alreadyRows.map(row => parseInt(row.colno));
 
   const missing = already.filter(userno => !changeUser.map(user => user).includes(userno));
   console.log('缺少的教師 userno:', missing);
@@ -235,8 +236,9 @@ try {
   console.log('多出來的教師 userno:', extra);
 
   if (extra.length > 0) {
-    console.log(extra);
-    const values = extra.map((userno,index) => [parseInt(prono.toString() +  Math.max(...alreadyRows).toString()+index+1), prono, userno]); // 構造插入數據
+    const values = extra.map((userno,index) => [
+      // console.log(index);
+      parseInt(`${prono}${allcolno.length>1 ? parseInt((Math.max(...allcolno)).toString().slice(-1))+index+1: (parseInt(index)+1) }`), prono, userno]); // 構造插入數據
     await pool.query(
       'INSERT INTO `student-project`.collaborator (colno, prono, userno) VALUES ?', [values]
     );
