@@ -26,45 +26,43 @@ const createProjectInDb = async (ProjectInfo) => {
 
     if (result.length > 0) {
         const latestProNo = result[0].prono;
-        const latestSequence = latestProNo % 1000 + 1; // 提取最新的序號部分並加1
-        newProNo = `${currentYear}${eduCode}${String(latestSequence).padStart(3, '0')}`;
+        const latestSequence = latestProNo % 10 + 1; // 提取最新的序號部分並加1
+        newProNo = `${currentYear}${eduCode}${latestSequence}`;
     } else {
-        newProNo = `${currentYear}${eduCode}001`;
+        newProNo = `${currentYear}${eduCode}`;
     }
-    await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.create_id, '開放中', ProjectInfo.admissions
+    await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions, share_type ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.create_id, '開放中', ProjectInfo.admissions, ProjectInfo.share_type
     ]);
 }
 
 const addStudentInDb = async (prono) => {
-    // 從 student table 取得該 prono 下最新的 stuno
     const [result] = await pool.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ? ORDER BY stuno DESC LIMIT 1', [prono]);
     let newStuNo;
 
     if (result.length > 0) {
-        // 提取 stuno 的數字部分，將其轉為數字並加1
         const latestStuNo = result[0].stuno;
-        const latestSequence = parseInt(latestStuNo.slice(-3)) + 1; // 取最後三位數字並加1
-        newStuNo = `${prono}S${String(latestSequence).padStart(3, '0')}`;
+        const latestSequence = parseInt(latestStuNo.slice(-3)) + 1; 
+        newStuNo = `${prono.slice(0, 5)}${String(latestSequence).padStart(3, '0')}`; 
     } else {
-        // 如果沒有任何記錄，從 S100 開始
-        newStuNo = `${prono}S100`;
+        // 如果沒有任何記錄，從 001 開始
+        newStuNo = `${prono.slice(0, 5)}001`; 
     }
 
-    // 將 stuno 和 prono 插入到 student 資料表
+
     await pool.query('INSERT INTO `student-project`.`student` (stuno, prono) VALUES (?, ?)', [newStuNo, prono]);
 
-    return newStuNo; // 回傳新產生的 stuno
+    return newStuNo; 
 }
 
 
 // 新增專案
 router.get('/', async (req, res) => {
     try{
-        const { proname, prodescription, startdate, phase1, enddate, create_id, admissions  } = req.query;
+        const { proname, prodescription, startdate, phase1, enddate, create_id, admissions, share_type  } = req.query;
 
         // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !startdate || !phase1 || !enddate || !create_id || !admissions ) {
+        if (!proname || !prodescription || !startdate || !phase1 || !enddate || !create_id || !admissions || !share_type ) {
             return res.status(400).json({ message: '所有欄位都是必填的' });
         }
 
@@ -75,7 +73,8 @@ router.get('/', async (req, res) => {
             phase1,
             enddate,
             create_id,
-            admissions
+            admissions,
+            share_type
         };
 
         // 呼叫 createProjectInDb 來新增專案
@@ -90,7 +89,7 @@ router.get('/', async (req, res) => {
         
 });
 
-// student table
+// 新增student table
 router.post('/addStudent', async (req, res) => {
     try {
         const { prono } = req.body;
