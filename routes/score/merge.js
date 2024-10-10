@@ -43,7 +43,7 @@ const mergeRankings = (lists) => {
 const checkAdmissionFairness = async (prono, admissionCount) => {
   // 1. 獲取協作老師總數
   const collaboratorQuery = 'SELECT COUNT(*) AS collaboratorCount FROM `student-project`.collaborator WHERE prono = ?';
-  const collaboratorResult = await query(collaboratorQuery, [prono]);
+  const collaboratorResult = await pool.query(collaboratorQuery, [prono]);
   const collaboratorCount = collaboratorResult[0].collaboratorCount;
 
   // 2. 計算每位老師應該錄取的學生數量
@@ -65,8 +65,81 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
   }
 };
 
-function weightedRanking(evaluations, weightKey = 'weight') {
-  return evaluations.sort((a, b) => b[weightKey] - a[weightKey]);
+function weightedRanking(allEvaluations) {
+  const scores = {};
+
+  allEvaluations.forEach(collaborator => {
+      collaborator.allEvaluations.forEach(({ stuno, ranking }) => {
+          // 初始化每位學生的分數
+          if (!scores[stuno]) {
+              scores[stuno] = { totalScore: 0, count: 0 }; // 初始化總分和計數
+          }
+
+          // 根據排名計算分數
+          const adjustedScore = 1 / ranking; // 使用排名的反轉值作為分數
+          scores[stuno].totalScore += adjustedScore; // 累加分數
+          scores[stuno].count += 1; // 增加計數
+      });
+  });
+
+  // 計算平均分數並排序
+  const weightedScores = Object.entries(scores).map(([stuno, { totalScore, count }]) => ({
+      stuno,
+      finalScore: totalScore / count // 計算平均分數
+  }));
+
+  // 按照 finalScore 降序排序
+  return weightedScores.sort((a, b) => b.finalScore - a.finalScore);
+}
+
+// 處理 share_type 為 1 的邏輯
+async function handleShareType1(prono) {
+  const sortedLists = [];
+  const collaborators = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
+
+  for (const collaborator of collaborators[0]) {
+    const evaluationsQuery = `
+      SELECT s.stuno
+      FROM \`student-project\`.evaluations e
+      JOIN assignment a ON e.assno = a.assno
+      JOIN collaborator c ON a.colno = c.colno
+      JOIN student s ON a.stuno = s.stuno
+      WHERE c.prono = ?
+      ORDER BY e.ranking ASC`;
+    
+    const evaluations = await pool.query(evaluationsQuery, [prono]);
+    const studentList = evaluations[0].map(e => e.stuno); // 獲取學生編號
+    sortedLists.push(studentList);
+  }
+  
+  // 合併排序
+  return mergeRankings(sortedLists);
+}
+
+// 處理 share_type 為 2 的邏輯
+async function handleShareType2(prono) {
+  const allEvaluations = [];
+  const collaborators = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
+
+  for (const collaborator of collaborators[0]) {
+    const evaluationsQuery = `
+      SELECT c.colno, e.evano, e.ranking
+      FROM \`student-project\`.evaluations e
+      JOIN assignment a ON e.assno = a.assno
+      JOIN collaborator c ON a.colno = c.colno
+      JOIN student s ON a.stuno = s.stuno
+      WHERE c.prono = ?
+      ORDER BY e.ranking ASC`;
+    
+    const evaluations = await pool.query(evaluationsQuery, [prono]);
+    allEvaluations.push({
+      colno: collaborator.colno,
+      allEvaluations: evaluations // 確保保留評估結果
+    });
+  }
+
+  // 使用加權排名
+  return weightedRanking(allEvaluations).map(evaluation => evaluation.stuno);
 }
 
 // 提交合併排序並分配分數
@@ -76,47 +149,23 @@ router.post('/', async (req, res) => {
   try {
     // 1. 獲取錄取人數
     const projectQuery = 'SELECT admissions, share_type FROM `student-project`.project WHERE prono = ?';
-    const projectResult = await query(projectQuery, [prono]);
-    const admissionCount = projectResult[0].admission;
+    const projectResult = await pool.query(projectQuery, [prono]);
+    const admissionCount = projectResult[0][0].admissions;
 
     // 2. 檢查錄取公平性
     const fairnessCheck = await checkAdmissionFairness(prono, admissionCount);
-
     // 如果不公平，返回錯誤提示並要求重新評分
     if (fairnessCheck.status === 'unfair') {
       return res.json({ success: false, message: fairnessCheck.message });
     }
 
-    // 3. 獲取每位協作老師排序的學生
-    const sortedLists = [];
-    const collaborators = await query(`SELECT colno FROM collaborator WHERE prono = ?`, [prono]);
-
-    for (const collaborator of collaborators) {
-      const colno = collaborator.colno;
-      const evaluationsQuery = `
-        SELECT s.stuno
-        FROM \`student-project\`.evaluations e
-        JOIN assignment a ON e.assno = a.assno
-        JOIN collaborator c ON a.colno = c.colno
-        JOIN student s ON a.stuno = s.stuno
-        WHERE c.prono = ?
-        ORDER BY e.ranking ASC`;
-
-      const evaluations = await query(evaluationsQuery, [prono]);
-      const studentList = evaluations.map(evaluation => evaluation.stuno);
-      sortedLists.push(studentList);
-    }
-
-    // 4.處理合併排序
-    const share_type = projectResult[0].share_type; // 獲取 share_type
+    // 處理合併排序
+    const share_type = projectResult[0][0].share_type; // 獲取 share_type
     let finalRankingList = [];
-    if (share_type === 1) {
-        // 平均分配：簡單合併並均勻分配
-        finalRankingList = mergeRankings(sortedLists);
-    } else if (share_type === 2) {
-        // 全部分配：加權排名
-        const allEvaluations = sortedLists.flatMap(list => list);
-        finalRankingList = weightedRanking(allEvaluations).map(evaluation => evaluation.stuno);
+    if (share_type == 1) {
+      finalRankingList = await handleShareType1(prono);
+    } else if (share_type == 2) {
+      finalRankingList = await handleShareType2(prono);
     }
 
     // 5. 分配分數（假設最高分 90，最低分 70）
@@ -127,7 +176,8 @@ router.post('/', async (req, res) => {
       const final_rank = index + 1;
       const score = scores[index]; // 根據排序位置分配的分數
       const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ? WHERE stuno = ?';
-      return query(updateQuery, [final_rank, score, stuno]);
+      return pool.query(updateQuery, [final_rank, score, stuno]);
+    
     });
 
     await Promise.all(insertPromises);
