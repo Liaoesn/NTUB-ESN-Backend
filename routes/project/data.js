@@ -14,12 +14,13 @@ router.get('/', async (req, res) => {
         // 基本查詢語句
         let query = `SELECT p.*, u.username, LEFT(p.prono, 3) AS prono_prefix
                     FROM \`student-project\`.\`project\` p
-                    JOIN \`student-project\`.\`user\` u
-                    ON p.create_id = u.userno
-                    WHERE p.create_id = ? 
+                    JOIN \`student-project\`.\`user\` u ON p.create_id = u.userno
+                    LEFT JOIN \`student-project\`.\`collaborator\` c ON p.prono = c.prono
+                    WHERE p.create_id = ? OR c.userno = ?
+                    
                 `;
 
-        let params = [userno];
+        let params = [userno, userno];
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
@@ -37,8 +38,9 @@ router.get('/', async (req, res) => {
         // 分頁設定
         const pageSize = 5;
         const offset = (page - 1) * pageSize;
-        query += ' LIMIT ? OFFSET ?';
-        params.push(pageSize, offset);
+
+        // 直接嵌入 LIMIT 和 OFFSET
+        query += ` LIMIT ${Number(pageSize)} OFFSET ${Number(offset)}`;
 
         // 執行查詢
         const [results] = await pool.query(query, params);
@@ -47,6 +49,9 @@ router.get('/', async (req, res) => {
 
         // 返回結果
         res.json(results);
+        console.log('SQL Query:', query);
+        console.log('Params:', params);
+
     } catch (error) {
         console.error('Error in database query:', error);
         res.status(500).send('Error fetching project data');
