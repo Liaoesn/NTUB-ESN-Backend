@@ -209,12 +209,6 @@ router.post('/update/teacher', async (req, res) => {
   const { changeUser } = req.body; // 接收到的變更用戶列表
 const { prono } = req.query; // 專案編號
 
-  try {
-    await addCollaborators(prono, usernoArray);
-    res.json({ message: '協作老師添加成功', result });
-  } catch (error) {
-    console.error('Error in adding collaborators:', error);
-    res.status(500).json({ error: '添加協作老師時發生錯誤' });
 if (!changeUser || !prono) {
   return res.status(400).json({ error: '缺少必要的資料' });
 }
@@ -235,7 +229,6 @@ try {
     );
     console.log('已刪除的教師:', missing);
   }
-});
 
   const extra = changeUser.filter(user => !already.includes(user));
 
@@ -260,7 +253,6 @@ try {
   console.error('伺服器錯誤:', error);
   return res.status(500).json({ error: '伺服器錯誤' });
 }});
-
 
 // 新增分配
 const addAssignmentInDb = async (prono) => {
@@ -331,6 +323,7 @@ router.post('/addAssignment', async (req, res) => {
         res.status(500).json({ message: '伺服器錯誤，無法新增分配' });
     }
 });
+
 
 
 module.exports = router;
