@@ -177,27 +177,84 @@ async function addCollaborators(prono, usernoArray) {
   }
 }
 
-
-// 協作老師
-router.get('/teacher', async (req, res) => {
-  const { prono, userno } = req.query; // 從請求的 body 中獲取 prono 和 userno
-
-  // 檢查 prono 是否存在，userno 是否存在且有效
-  if (!prono || !userno) {
-    return res.status(400).json({ error: '請提供有效的 prono 和 userno' });
-  }
-
-  // 將 userno 包裝成陣列
-  const usernoArray = Array.isArray(userno) ? userno : [userno];
-
+router.get('/search/teacher', async (req, res) => {
   try {
-    await addCollaborators(prono, usernoArray);
-    res.json({ message: '協作老師添加成功', result });
+    const prono = req.query.prono;
+    const teacher = []; // 从 req.params 获取 prono
+    const [teacherDB] = await pool.query(
+      'SELECT userno,username,permissions FROM `student-project`.user;'
+      // ?'SELECT c.colno,c.userno,s.usernae FROM `student-project`.collaborator c JOIN `student-project`.user s ON c.userno = s.userno WHERE c.prono = ?', [prono]
+    );
+    const [ready] = await pool.query(
+      'SELECT colno, userno FROM `student-project`.collaborator where prono = ?',[prono]
+    )
+    
+    teacher.push({'ready':ready})
+    teacher.push({'teacherDB':teacherDB})
+    console.log(teacher)
+    console.log(prono)
+
+    if (teacher.length === 0) {
+      return res.status(404).json({ error: '未找此專案' }); // 使用 rows 来判断是否为空
+    }
+
+    res.json(teacher); // 返回查询到的所有数据
   } catch (error) {
-    console.error('Error in adding collaborators:', error);
-    res.status(500).json({ error: '添加協作老師時發生錯誤' });
+    console.error('查詢資料時發生錯誤:', error);
+    res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
   }
 });
+
+router.post('/update/teacher', async (req, res) => {
+  const { changeUser } = req.body; // 接收到的變更用戶列表
+const { prono } = req.query; // 專案編號
+
+if (!changeUser || !prono) {
+  return res.status(400).json({ error: '缺少必要的資料' });
+}
+
+try {
+  const [alreadyRows] = await pool.query(
+    'SELECT colno,userno FROM `student-project`.collaborator WHERE prono = ?', [prono]
+  );
+  const already = alreadyRows.map(row => row.userno);
+  const allcolno = alreadyRows.map(row => parseInt(row.colno));
+
+  const missing = already.filter(userno => !changeUser.map(user => user).includes(userno));
+  console.log('缺少的教師 userno:', missing);
+
+  if (missing.length > 0) {
+    await pool.query(
+      'DELETE FROM `student-project`.collaborator WHERE prono = ? AND userno IN (?)',
+      [prono, missing]
+    );
+    console.log('已刪除的教師:', missing);
+  }
+
+  const extra = changeUser.filter(user => !already.includes(user));
+
+  console.log('多出來的教師 userno:', extra);
+
+  if (extra.length > 0) {
+    const values = extra.map((userno,index) => [
+      // console.log(index);
+      parseInt(`${prono}${allcolno.length>1 ? parseInt((Math.max(...allcolno)).toString().slice(-1))+index+1: (parseInt(index)+1) }`), prono, userno]); // 構造插入數據
+    await pool.query(
+      'INSERT INTO `student-project`.collaborator (colno, prono, userno) VALUES ?', [values]
+    );
+    console.log('已新增的教師:', values);
+  }
+
+  return res.status(200).json({
+    message: '操作成功',
+    added: extra,
+    deleted: missing
+  });
+
+} catch (error) {
+  console.error('伺服器錯誤:', error);
+  return res.status(500).json({ error: '伺服器錯誤' });
+}});
 
 // 新增分配
 const addAssignmentInDb = async (prono) => {
@@ -268,6 +325,7 @@ router.post('/addAssignment', async (req, res) => {
         res.status(500).json({ message: '伺服器錯誤，無法新增分配' });
     }
 });
+
 
 
 module.exports = router;
