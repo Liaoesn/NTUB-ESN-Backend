@@ -13,13 +13,13 @@ router.get('/', async (req, res) => {
     try{
         // 基本查詢語句
         let query = `SELECT CEILING(COUNT(*) / 5) as page 
-                    FROM \`student-project\`.\`project\` p
-                    JOIN \`student-project\`.\`user\` u ON p.create_id = u.userno
-                    LEFT JOIN \`student-project\`.\`collaborator\` c ON p.prono = c.prono
-                    WHERE (p.create_id = ? OR c.userno = ?)
+                    FROM \`student-project\`.project p
+                    LEFT JOIN collaborator c ON c.userno = ? AND p.prono = c.prono
+                    JOIN user u on u.userno = p.create_id
+                    WHERE (c.userno = ? or p.create_id = ?)
                 `;
 
-        let params = [userno, userno];
+        let params = [userno, userno, userno];
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
