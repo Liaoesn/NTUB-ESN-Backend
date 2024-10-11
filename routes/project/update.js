@@ -182,7 +182,7 @@ router.get('/search/teacher', async (req, res) => {
     const prono = req.query.prono;
     const teacher = []; // 从 req.params 获取 prono
     const [teacherDB] = await pool.query(
-      'SELECT userno,username,permissions FROM `student-project`.user;'
+      'SELECT userno,username,permissions FROM `student-project`.user where  permissions = 0;'
       // ?'SELECT c.colno,c.userno,s.usernae FROM `student-project`.collaborator c JOIN `student-project`.user s ON c.userno = s.userno WHERE c.prono = ?', [prono]
     );
     const [ready] = await pool.query(
