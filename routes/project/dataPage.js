@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
                     FROM \`student-project\`.\`project\` p
                     JOIN \`student-project\`.\`user\` u ON p.create_id = u.userno
                     LEFT JOIN \`student-project\`.\`collaborator\` c ON p.prono = c.prono
-                    WHERE p.create_id = ? OR c.userno = ?
+                    WHERE (p.create_id = ? OR c.userno = ?)
                 `;
 
         let params = [userno, userno];

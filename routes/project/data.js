@@ -47,8 +47,6 @@ router.get('/', async (req, res) => {
 
         // 返回結果
         res.json(results);
-        console.log('SQL Query:', query);
-        console.log('Params:', params);
     } catch (error) {
         console.error('Error in database query:', error);
         res.status(500).send('Error fetching project data');
