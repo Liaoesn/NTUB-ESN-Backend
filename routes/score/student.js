@@ -11,7 +11,7 @@ router.post('/:prono', async (req, res) => {
         const [rows] = await pool.query(`
             SELECT * 
             FROM \`student-project\`.project p
-            JOIN collaborator c ON c.prono = p.prono c.userno = ?
+            JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
             JOIN assignment a ON a.colno = c.colno
             JOIN student s ON s.stuno = a.stuno
             LEFT JOIN resume r ON r.stuno = s.stuno
