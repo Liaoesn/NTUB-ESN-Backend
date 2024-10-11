@@ -16,10 +16,10 @@ router.get('/', async (req, res) => {
                     FROM \`student-project\`.project p
                     JOIN user u ON p.create_id = u.userno
                     LEFT JOIN collaborator c ON p.prono = c.prono AND c.userno = ?
-                    WHERE p.create_id = ?
+                    WHERE p.create_id = ? or c.userno = ?
                 `;
 
-        let params = [userno, userno];
+        let params = [userno, userno, userno];
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
