@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
                     FROM \`student-project\`.\`project\` p
                     JOIN \`student-project\`.\`user\` u
                     ON p.create_id = u.userno
-                    WHERE 1 = 1
+                    WHERE p.state = '已關閉'
                 `;
 
         let params = [];
