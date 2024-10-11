@@ -119,11 +119,13 @@ async function handleShareType1(prono) {
 // 處理 share_type 為 2 的邏輯
 async function handleShareType2(prono) {
   const allEvaluations = [];
-  const collaborators = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
+  
+  // 查詢協作老師的編號
+  const [collaborators] = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
 
-  for (const collaborator of collaborators[0]) {
+  for (const collaborator of collaborators) {
     const evaluationsQuery = `
-      SELECT c.colno, e.evano, e.ranking
+      SELECT c.colno, e.evano, e.ranking, s.stuno
       FROM \`student-project\`.evaluations e
       JOIN assignment a ON e.assno = a.assno
       JOIN collaborator c ON a.colno = c.colno
@@ -131,16 +133,31 @@ async function handleShareType2(prono) {
       WHERE c.prono = ?
       ORDER BY e.ranking ASC`;
     
-    const evaluations = await pool.query(evaluationsQuery, [prono]);
-    allEvaluations.push({
-      colno: collaborator.colno,
-      allEvaluations: evaluations // 確保保留評估結果
-    });
+    // 查詢評估結果
+    const [evaluations] = await pool.query(evaluationsQuery, [prono]);
+
+    // 確保每個評估的 ranking 為數字，並確保 stuno 存在
+    const validEvaluations = evaluations.map(evaluation => ({
+      stuno: evaluation.stuno,
+      ranking: parseInt(evaluation.ranking, 10) || 0  // 將 ranking 轉換為數字，如果無效則設為 0
+    }));
+
+    if (validEvaluations.length > 0) {
+      allEvaluations.push({
+        colno: collaborator.colno,
+        allEvaluations: validEvaluations
+      });
+    }
   }
 
-  // 使用加權排名
-  return weightedRanking(allEvaluations).map(evaluation => evaluation.stuno);
+  // 確保加權排名的函數存在並正確使用
+  if (typeof weightedRanking === 'function') {
+    return weightedRanking(allEvaluations).map(evaluation => evaluation.stuno);
+  } else {
+    throw new Error('weightedRanking function is not defined.');
+  }
 }
+
 
 // 提交合併排序並分配分數
 router.post('/', async (req, res) => {
