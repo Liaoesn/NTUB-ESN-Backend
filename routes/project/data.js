@@ -13,10 +13,10 @@ router.get('/', async (req, res) => {
     try{
         // 基本查詢語句
         let query = `SELECT p.*, u.username, LEFT(p.prono, 3) AS prono_prefix
-                    FROM \`student-project\`.\`project\` p
-                    JOIN \`student-project\`.\`user\` u ON p.create_id = u.userno
-                    LEFT JOIN \`student-project\`.\`collaborator\` c ON p.prono = c.prono
-                    WHERE (p.create_id = ? OR c.userno = ?)
+                    FROM \`student-project\`.project p
+                    JOIN user u ON p.create_id = u.userno
+                    LEFT JOIN collaborator c ON p.prono = c.prono AND c.userno = ?
+                    WHERE p.create_id = ?
                 `;
 
         let params = [userno, userno];
