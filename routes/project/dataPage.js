@@ -23,13 +23,13 @@ router.get('/', async (req, res) => {
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND LEFT(prono, 3) = ?';
+            query += ' AND LEFT(p.prono, 3) = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND SUBSTRING(prono, 4, 2) = ?';
+            query += ' AND SUBSTRING(p.prono, 4, 2) = ?';
             params.push(academic);
         }
 
