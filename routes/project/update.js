@@ -293,6 +293,12 @@ const addAssignmentInDb = async (prono) => {
             for (const student of students) {
                 const newAssNo = `${assNoPrefix}${currentMonth}${String(maxSuffix + 1).padStart(3, '0')}`; // 生成新的 assno
                 await connection.query('INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)', [newAssNo, collaborator.colno, student.stuno]);
+                
+                
+                // 生成 evano 規則為 assno 後加固定數 5
+                const evaNo = `${newAssNo}5`;
+                await connection.query('INSERT INTO `student-project`.`evaluation` (evano, assno) VALUES (?, ?)', [evaNo, newAssNo]);
+                
                 maxSuffix++; // 增加序號
             }
         }

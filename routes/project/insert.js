@@ -52,8 +52,34 @@ const addStudentInDb = async (prono) => {
 
     await pool.query('INSERT INTO `student-project`.`student` (stuno, prono) VALUES (?, ?)', [newStuNo, prono]);
 
+    // 新增學生備註資料
+    await addStudentDetailsInDb(newStuNo);
+    // 新增學生履歷資料
+    await addresumeInDb(newStuNo);
+    // 新增學生自傳資料
+    await addautobiographyInDb(newStuNo);
+
     return newStuNo; 
 }
+
+// 新增備注編號
+const addStudentDetailsInDb = async (stuno) => {
+    const detailno = `${stuno}9`; // detailno 是 stuno 後加上 9
+    await pool.query('INSERT INTO `student-project`.`studetails` (stuno, detailno) VALUES (?, ?)', [stuno, detailno]);
+};
+
+// 新增履歷編號
+const addresumeInDb = async (stuno) => {
+    const resno = `${stuno}8`; //  是 stuno 後加上 8
+    await pool.query('INSERT INTO `student-project`.`resume` (stuno, resno) VALUES (?, ?)', [stuno, resno]);
+};
+
+// 新增自傳編號
+const addautobiographyInDb = async (stuno) => {
+    const autno = `${stuno}7`; //  是 stuno 後加上 7
+    await pool.query('INSERT INTO `student-project`.`autobiography` (stuno, autno) VALUES (?, ?)', [stuno, autno]);
+};
+
 
 
 // 新增專案
