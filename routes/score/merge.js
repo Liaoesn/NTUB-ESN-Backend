@@ -2,15 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-// 將 pool.query 包裝為 Promise 以使用 async/await
-const query = (sql, params) => {
-  return new Promise((resolve, reject) => {
-    pool.query(sql, params, (err, results) => {
-      if (err) return reject(err);
-      resolve(results);
-    });
-  });
-};
 
 // 等距分配分數函數
 function distributeScores(min, max, numberOfPeople) {
