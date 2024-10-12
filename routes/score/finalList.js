@@ -10,12 +10,12 @@ router.get('/:prono', async (req, res) => {
             SELECT *
             FROM \`student-project\`.project p
             LEFT JOIN collaborator c ON p.prono = c.prono
-            LEFT JOIN student s ON p.prono = s.prono
+            LEFT JOIN assignment a ON c.colno = a.colno
+            LEFT JOIN evaluations e ON a.assno = e.assno
+            LEFT JOIN student s ON p.prono = s.prono AND s.stuno = a.stuno
             LEFT JOIN resume r ON s.stuno = r.stuno
 			LEFT JOIN autobiography au ON s.stuno = au.stuno
 			LEFT JOIN studetails d ON s.stuno = d.stuno
-            LEFT JOIN assignment a ON c.colno = a.colno AND s.stuno = a.stuno
-            LEFT JOIN evaluations e ON a.assno = e.assno
             WHERE p.prono = ?
             ORDER BY s.final_ranking ASC
         `, [prono]);

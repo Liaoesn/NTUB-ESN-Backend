@@ -35,10 +35,9 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
   // 1. 獲取協作老師總數
   const collaboratorQuery = 'SELECT COUNT(*) AS collaboratorCount FROM `student-project`.collaborator WHERE prono = ?';
   const collaboratorResult = await pool.query(collaboratorQuery, [prono]);
-  const collaboratorCount = collaboratorResult[0].collaboratorCount;
+  const collaboratorCount = collaboratorResult[0][0].collaboratorCount;
 
   // 2. 計算每位老師應該錄取的學生數量
-  const studentsPerTeacher = Math.floor(admissionCount / collaboratorCount);
   const remainderStudents = admissionCount % collaboratorCount; // 剩下的學生數
 
   // 3. 確認是否有老師要多評分一個學生
@@ -183,9 +182,11 @@ router.post('/', async (req, res) => {
     const insertPromises = finalRankingList.map((stuno, index) => {
       const final_rank = index + 1;
       const score = scores[index]; // 根據排序位置分配的分數
-      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ? WHERE stuno = ?';
-      return pool.query(updateQuery, [final_rank, score, stuno]);
-    
+      const isAdmitted = final_rank <= admissionCount ? '錄取' : '未錄取'; // 根據錄取人數決定是否錄取
+      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ?, admit = ? WHERE stuno = ?';
+
+      // 使用 final_rank, score, 和 isAdmitted 更新資料庫
+      return pool.query(updateQuery, [final_rank, score, isAdmitted, stuno]);
     });
 
     await Promise.all(insertPromises);
