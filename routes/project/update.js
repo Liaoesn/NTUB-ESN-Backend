@@ -31,38 +31,31 @@ router.get('/:prono', async (req, res) => {
 
 
 // 專案名稱, 學制
-router.get('/name', async (req, res) => {
-  const { proname, academic } = req.query;
+router.post('/name', async (req, res) => {
+  const { title, prodescription } = req.body;  // 接收從前端傳來的資料
+  const { prono } = req.query;  // 從 query 參數中取得 prono
 
-  let updates = [];
-  let params = [];
-
-  if (proname) {
-    updates.push('proname = ?');
-    params.push(proname);
+  // 檢查是否有 prono 和要更新的內容
+  if (!prono) {
+    return res.status(400).json({ message: 'prono is required' });
   }
-
-  if (academic) {
-    updates.push('prodescription = ?');
-    params.push(academic);
+  if (!title || !prodescription) {
+    return res.status(400).json({ message: 'title and prodescription are required' });
   }
-
-  // 確保有查詢和參數
-  if (updates.length === 0) {
-    return res.status(400).send('沒有提供更新參數');
-  }
-  const query = `UPDATE \`student-project\`.\`project\` SET ${updates.join(', ')} WHERE prono = ?`;
-  params.push(prono); // 將 prono 加入參數
 
   try {
-    const [result] = await pool.query(query, params);
-    res.json({ message: '更新成功', result });
-  } catch (error) {
-    console.error('Error in database query:', error);
-    res.status(500).send('Error updating project data');
-  }
+    // 更新 MySQL 數據庫中的 project 表
+    const sql = `UPDATE \`student-project\`.\`project\` SET proname = ?, prodescription = ? WHERE prono = ?`;
+    const values = [title, prodescription, prono];
+    await pool.query(sql, values);
 
+    res.status(200).json({ message: 'Project updated successfully' });
+  } catch (error) {
+    console.error('Error updating project:', error);
+    res.status(500).json({ message: 'Failed to update project' });
+  }
 });
+
 
 // 第一階段, 結束日期
 router.get('/date', async (req, res) => {
