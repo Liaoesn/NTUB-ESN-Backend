@@ -159,6 +159,59 @@ async function addCollaborators(prono, usernoArray) {
       maxSuffix = newSuffix;
     }
 
+    // 查詢有該 prono 的學生
+    const [students] = await connection.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ?', [prono]);
+
+    // 生成 assno 的邏輯，依照 addAssignmentInDb 的規則
+    const currentDate = new Date();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 取得當前月份
+    let assNoPrefix = prono.slice(0, 3); // prono 的前三位
+    let assNo = `${assNoPrefix}${currentMonth}100`; // 假設 assno 以 prono 前三位 + 當前月份 + 序號 100 開始
+
+    const [existingAssignments] = await connection.query('SELECT assno FROM `student-project`.`assignment` WHERE assno LIKE ?', [`${assNoPrefix}${currentMonth}%`]);
+
+    // 獲取現有分配的最大序號
+    let maxAssSuffix = 100;
+    if (existingAssignments.length > 0) {
+      maxAssSuffix = Math.max(...existingAssignments.map(a => parseInt(a.assno.slice(-3))));
+    }
+
+    // 計算每個老師應分配的學生數量
+    const studentsPerTeacher = Math.floor(students.length / newColnos.length);
+    let remainingStudents = students.length % newColnos.length; // 分配剩餘的學生
+
+    let studentIndex = 0;
+    const assignmentQuery = 'INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)';
+    const evaluationQuery = 'INSERT INTO `student-project`.`evaluation` (evano, assno) VALUES (?, ?)';
+
+    // 平均分配學生
+    for (const colno of newColnos) {
+      for (let i = 0; i < studentsPerTeacher; i++) {
+        const newAssNo = `${assNoPrefix}${currentMonth}${String(maxAssSuffix + 1).padStart(3, '0')}`; // 生成新的 assno
+        await connection.query(assignmentQuery, [newAssNo, colno, students[studentIndex].stuno]);
+
+        // 生成 evano 規則為 assno 後加固定數 5
+        const evaNo = `${newAssNo}5`;
+        await connection.query(evaluationQuery, [evaNo, newAssNo]);
+
+        maxAssSuffix++; // 增加 assno 序號
+        studentIndex++;
+      }
+
+      // 如果有剩餘學生，額外分配一個給該老師
+      if (remainingStudents > 0) {
+        const newAssNo = `${assNoPrefix}${currentMonth}${String(maxAssSuffix + 1).padStart(3, '0')}`;
+        await connection.query(assignmentQuery, [newAssNo, colno, students[studentIndex].stuno]);
+
+        const evaNo = `${newAssNo}5`;
+        await connection.query(evaluationQuery, [evaNo, newAssNo]);
+
+        maxAssSuffix++; // 增加 assno 序號
+        studentIndex++;
+        remainingStudents--;
+      }
+    }
+
     // 提交交易
     await connection.commit();
     console.log('Collaborators added successfully!');
@@ -249,81 +302,7 @@ try {
   return res.status(500).json({ error: '伺服器錯誤' });
 }});
 
-// 新增分配
-const addAssignmentInDb = async (prono) => {
-    const connection = await pool.getConnection();
-    
-    try {
-        // 開始交易
-        await connection.beginTransaction();
 
-        // 查詢該 prono 的 colno 和 stuno
-        const [collaborators] = await connection.query('SELECT colno FROM `student-project`.`collaborator` WHERE prono = ?', [prono]);
-        const [students] = await connection.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ?', [prono]);
-
-        // 檢查是否有 collaborators 和 students
-        if (collaborators.length === 0 || students.length === 0) {
-            throw new Error('沒有找到任何協作老師或學生');
-        }
-
-        // 取得當前月份
-        const currentDate = new Date();
-        const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 取得當前月份並轉為兩位數
-
-        // 生成 assno
-        let assNoPrefix = prono.slice(0, 3); // prono 的前三位
-        let assNo = `${assNoPrefix}${currentMonth}100`; // 假設 assno 以 prono 前三位 + 當前月份 + 序號 100 開始
-        const [existingAssignments] = await connection.query('SELECT assno FROM `student-project`.`assignment` WHERE assno LIKE ?', [assNo]);
-        
-        // 獲取最大序號
-        let maxSuffix = 0;
-        if (existingAssignments.length > 0) {
-            maxSuffix = existingAssignments.map(a => parseInt(a.assno.slice(-3))).sort((a, b) => b - a)[0];
-        }
-
-        // 對於每個 collaborator 和 student，插入 assignment 資料
-        for (const collaborator of collaborators) {
-            for (const student of students) {
-                const newAssNo = `${assNoPrefix}${currentMonth}${String(maxSuffix + 1).padStart(3, '0')}`; // 生成新的 assno
-                await connection.query('INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)', [newAssNo, collaborator.colno, student.stuno]);
-                
-                
-                // 生成 evano 規則為 assno 後加固定數 5
-                const evaNo = `${newAssNo}5`;
-                await connection.query('INSERT INTO `student-project`.`evaluation` (evano, assno) VALUES (?, ?)', [evaNo, newAssNo]);
-                
-                maxSuffix++; // 增加序號
-            }
-        }
-
-        // 提交交易
-        await connection.commit();
-        console.log('Assignments added successfully!');
-    } catch (error) {
-        console.error('Error adding assignments:', error);
-        await connection.rollback();
-    } finally {
-        connection.release();
-    }
-};
-
-// 新增分配路由
-router.post('/addAssignment', async (req, res) => {
-    const { prono } = req.body;
-
-    // 檢查必填欄位是否存在
-    if (!prono) {
-        return res.status(400).json({ message: 'prono 是必填的' });
-    }
-
-    try {
-        await addAssignmentInDb(prono);
-        res.status(201).json({ message: '分配新增成功' });
-    } catch (error) {
-        console.error('Error in adding assignment:', error);
-        res.status(500).json({ message: '伺服器錯誤，無法新增分配' });
-    }
-});
 
 
 
