@@ -32,7 +32,7 @@ const createProjectInDb = async (ProjectInfo) => {
         newProNo = `${currentYear}${eduCode}`;
     }
     await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions, share_type ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.create_id, '開放中', ProjectInfo.admissions, ProjectInfo.share_type
+        newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.userno, '開放中', ProjectInfo.admissions, ProjectInfo.share_type
     ]);
 }
 
@@ -83,12 +83,13 @@ const addautobiographyInDb = async (stuno) => {
 
 
 // 新增專案
-router.get('/', async (req, res) => {
+router.post('/', async (req, res) => {
     try{
-        const { proname, prodescription, startdate, phase1, enddate, create_id, admissions, share_type  } = req.query;
+        // const userno = req.session.user.userno; 
+        const { proname, prodescription, startdate, phase1, enddate, userno, admissions, share_type  } = req.body;
 
         // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !startdate || !phase1 || !enddate || !create_id || !admissions || !share_type ) {
+        if (!proname || !prodescription || !startdate || !phase1 || !enddate || !admissions || !share_type ) {
             return res.status(400).json({ message: '所有欄位都是必填的' });
         }
 
@@ -98,7 +99,7 @@ router.get('/', async (req, res) => {
             startdate,
             phase1,
             enddate,
-            create_id,
+            userno,
             admissions,
             share_type
         };
