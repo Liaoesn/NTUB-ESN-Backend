@@ -30,7 +30,7 @@ const mergeRankings = (lists) => {
   return merged;
 };
 
-// 檢查錄取公平性
+// 檢查錄取公平性，並返回多分配學生的資料
 const checkAdmissionFairness = async (prono, admissionCount) => {
   // 1. 獲取協作老師總數
   const collaboratorQuery = 'SELECT COUNT(*) AS collaboratorCount FROM `student-project`.collaborator WHERE prono = ?';
@@ -38,14 +38,38 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
   const collaboratorCount = collaboratorResult[0][0].collaboratorCount;
 
   // 2. 計算每位老師應該錄取的學生數量
+  const studentsPerTeacher = Math.floor(admissionCount / collaboratorCount);
   const remainderStudents = admissionCount % collaboratorCount; // 剩下的學生數
 
-  // 3. 確認是否有老師要多評分一個學生
+  // 如果有剩下的學生，這些學生分配不公平
   if (remainderStudents > 0) {
+    // 查詢這些多分配到的學生資料
+    const extraStudentsQuery = `
+      SELECT s.stuno
+      FROM \`student-project\`.evaluations e
+      JOIN assignment a ON a.assno = e.assno
+      JOIN student s ON s.stuno = a.stuno
+      JOIN collaborator c ON a.colno = c.colno
+      WHERE c.prono = ? AND e.ranking = ?
+      ORDER BY s.stuno ASC
+      ;
+    `;
+
+    // 獲取每位老師應多分配的學生
+    const extraStudents = [];
+    for (const collaborator of collaboratorResult[0]) {
+      const [students] = await pool.query(extraStudentsQuery, [prono, studentsPerTeacher + 1, collaboratorCount]);
+      // 將每位學生的學號推入 extraStudents 陣列
+      students.forEach(student => {
+        extraStudents.push(student.stuno); // 只取學號
+      });
+    }
+
     return {
       status: 'unfair',
       message: `有${remainderStudents}名學生分配不公平，請重新評分這些學生。`,
-      extraStudentsCount: remainderStudents
+      extraStudentsCount: remainderStudents,
+      extraStudents: extraStudents // 包含多分配的學生資料
     };
   } else {
     return {
@@ -54,6 +78,7 @@ const checkAdmissionFairness = async (prono, admissionCount) => {
     };
   }
 };
+
 
 function weightedRanking(allEvaluations) {
   const scores = {};
@@ -163,7 +188,11 @@ router.post('/', async (req, res) => {
     const fairnessCheck = await checkAdmissionFairness(prono, admissionCount);
     // 如果不公平，返回錯誤提示並要求重新評分
     if (fairnessCheck.status === 'unfair') {
-      return res.json({ success: false, message: fairnessCheck.message });
+      return res.json({ 
+        success: false, 
+        message: fairnessCheck.message,
+        extraStudents: fairnessCheck.extraStudents // 返回多分配的學生資料
+      });
     }
 
     // 處理合併排序
