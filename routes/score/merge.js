@@ -108,27 +108,119 @@ function weightedRanking(allEvaluations) {
 }
 
 // 處理 share_type 為 1 的邏輯
-async function handleShareType1(prono) {
+async function handleShareType1(prono, phase2, admissionCount) {
   const sortedLists = [];
   const collaborators = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
 
-  for (const collaborator of collaborators[0]) {
-    const evaluationsQuery = `
+  if(!phase2){
+    for (const collaborator of collaborators[0]) {
+      const evaluationsQuery = `
+        SELECT s.stuno
+        FROM \`student-project\`.evaluations e
+        JOIN assignment a ON e.assno = a.assno
+        JOIN collaborator c ON a.colno = c.colno
+        JOIN student s ON a.stuno = s.stuno
+        WHERE c.prono = ?
+        ORDER BY e.ranking ASC`;
+
+      const evaluations = await pool.query(evaluationsQuery, [prono]);
+      const studentList = evaluations[0].map(e => e.stuno); // 獲取學生編號
+      sortedLists.push(studentList);
+    }
+
+    // 合併排序
+    return mergeRankings(sortedLists);
+  }else{
+    // 獲取協作老師總數
+    const collaboratorQuery = 'SELECT COUNT(*) AS collaboratorCount FROM `student-project`.collaborator WHERE prono = ?';
+    const collaboratorResult = await pool.query(collaboratorQuery, [prono]);
+    const collaboratorCount = collaboratorResult[0][0].collaboratorCount;
+    const admissionCount = collaboratorResult[0][0].admissionCount;
+
+    // 計算每位老師應該錄取的學生數量
+    const studentsPerTeacher = Math.floor(admissionCount / collaboratorCount);
+    const pro = prono.slice(0, 3);
+
+    // 查詢主輪分配的學生
+    const studentsQuery = `
       SELECT s.stuno
       FROM \`student-project\`.evaluations e
-      JOIN assignment a ON e.assno = a.assno
+      JOIN assignment a ON a.assno = e.assno
+      JOIN student s ON s.stuno = a.stuno
       JOIN collaborator c ON a.colno = c.colno
-      JOIN student s ON a.stuno = s.stuno
-      WHERE c.prono = ?
-      ORDER BY e.ranking ASC`;
+      WHERE c.prono = ? AND e.evano LIKE ?
+      ORDER BY e.ranking ASC
+      LIMIT ?;`;
+
+    const allStudents = [];
+    for (const collaborator of collaborators[0]) {
+      // 查詢主輪分配的學生
+      const [primaryStudents] = await pool.query(studentsQuery, [prono, `${pro}%`, studentsPerTeacher * collaboratorCount]);
+
+      primaryStudents.forEach(student => {
+        allStudents.push(student.stuno); // 只取學號，推入 allStudents 陣列
+      });
+    }
+
+    // 查詢額外分配的學生
+    const extraStudentsQuery = `
+      SELECT s.stuno, e.ranking
+      FROM \`student-project\`.evaluations e
+      JOIN assignment a ON a.assno = e.assno
+      JOIN student s ON s.stuno = a.stuno
+      JOIN collaborator c ON a.colno = c.colno
+      WHERE c.prono = ? AND e.evano LIKE '2%'
+      ORDER BY e.ranking ASC;`;
     
-    const evaluations = await pool.query(evaluationsQuery, [prono]);
-    const studentList = evaluations[0].map(e => e.stuno); // 獲取學生編號
-    sortedLists.push(studentList);
+    const extraEvaluations = [];
+    const [additionalStudents] = await pool.query(extraStudentsQuery, [prono]);
+
+    additionalStudents.forEach(student => {
+      // 將每位學生和排名記錄進 `extraEvaluations`
+      extraEvaluations.push({
+        stuno: student.stuno,
+        ranking: student.ranking
+      });
+    });
+
+    // 使用 weightedRanking 函數進行加權排名
+    const weightedFinalScores = weightedRanking([{ allEvaluations: extraEvaluations }]);
+    
+    // 計算要查詢的學生數量
+    const allStudentQuery = `
+      SELECT count(stuno) FROM \`student-project\`.student WHERE prono = ?;`; // 這裡查詢所有學生的學號，根據您的實際情況調整
+    const [allStudentRows] = await pool.query(allStudentQuery, [prono]);
+    const totalStudents = allStudentRows[0].studentCount; // 獲取學生數量
+    // 提取學號並計算數量
+    const studentNumbers = weightedFinalScores.map(e => e.stuno); // 提取學號
+    const totalWeightedFinalScores = studentNumbers.length; // 獲取加權學生數量
+    const totalAllStudents = allStudents.length; // allStudents 的數量
+
+    const limitCount = totalStudents - totalWeightedFinalScores- totalAllStudents; // 查詢的總數量
+    const offsetCount = (studentsPerTeacher + 1) * collaboratorCount; // 從這裡開始查詢
+    
+    // 查詢剩餘的學生
+    const remainStudentsQuery = `
+      SELECT s.stuno
+      FROM \`student-project\`.evaluations e
+      JOIN assignment a ON a.assno = e.assno
+      JOIN student s ON s.stuno = a.stuno
+      JOIN collaborator c ON a.colno = c.colno
+      WHERE c.prono = ? AND e.evano LIKE ?
+      ORDER BY e.ranking ASC
+      LIMTI ? OFFSET ?;`;
+    
+    const remainEvaluations = [];
+    const [remainStudents] = await pool.query(remainStudentsQuery, [prono, `${pro}%`, limitCount, offsetCount]);
+    remainStudents.forEach(student => {
+      remainEvaluations.push(student.stuno); // 只取學號，推入 allStudents 陣列
+    });
+
+    // 連接主輪分配的學生和額外分配的學生
+    const finalStudentList = [...allStudents, ...weightedFinalScores.map(e => e.stuno), ...remainEvaluations];
+
+    return finalStudentList; // 返回最終學生列表
   }
-  
-  // 合併排序
-  return mergeRankings(sortedLists);
 }
 
 // 處理 share_type 為 2 的邏輯
@@ -180,7 +272,7 @@ router.post('/', async (req, res) => {
 
   try {
     // 1. 獲取錄取人數
-    const projectQuery = 'SELECT admissions, phase2, share_type FROM `student-project`.project WHERE prono = ?';
+    const projectQuery = 'SELECT admissions, share_type FROM `student-project`.project WHERE prono = ?';
     const projectResult = await pool.query(projectQuery, [prono]);
     const admissionCount = projectResult[0][0].admissions;
     const phase2 = projectResult[0][0].phase2;
@@ -197,12 +289,11 @@ router.post('/', async (req, res) => {
         });
       }
     }else{
-
       // 處理合併排序
       const share_type = projectResult[0][0].share_type; // 獲取 share_type
       let finalRankingList = [];
       if (share_type == 1) {
-        finalRankingList = await handleShareType1(prono);
+        finalRankingList = await handleShareType1(prono, phase2, admissionCount);
       } else if (share_type == 2) {
         finalRankingList = await handleShareType2(prono);
       }
