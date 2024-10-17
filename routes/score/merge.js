@@ -180,47 +180,51 @@ router.post('/', async (req, res) => {
 
   try {
     // 1. 獲取錄取人數
-    const projectQuery = 'SELECT admissions, share_type FROM `student-project`.project WHERE prono = ?';
+    const projectQuery = 'SELECT admissions, phase2, share_type FROM `student-project`.project WHERE prono = ?';
     const projectResult = await pool.query(projectQuery, [prono]);
     const admissionCount = projectResult[0][0].admissions;
+    const phase2 = projectResult[0][0].phase2;
 
-    // 2. 檢查錄取公平性
-    const fairnessCheck = await checkAdmissionFairness(prono, admissionCount);
-    // 如果不公平，返回錯誤提示並要求重新評分
-    if (fairnessCheck.status === 'unfair') {
-      return res.json({ 
-        success: false, 
-        message: fairnessCheck.message,
-        extraStudents: fairnessCheck.extraStudents // 返回多分配的學生資料
+    if (!phase2){
+      // 2. 檢查錄取公平性
+      const fairnessCheck = await checkAdmissionFairness(prono, admissionCount);
+      // 如果不公平，返回錯誤提示並要求重新評分
+      if (fairnessCheck.status === 'unfair') {
+        return res.json({ 
+          success: false, 
+          message: fairnessCheck.message,
+          extraStudents: fairnessCheck.extraStudents // 返回多分配的學生資料
+        });
+      }
+    }else{
+
+      // 處理合併排序
+      const share_type = projectResult[0][0].share_type; // 獲取 share_type
+      let finalRankingList = [];
+      if (share_type == 1) {
+        finalRankingList = await handleShareType1(prono);
+      } else if (share_type == 2) {
+        finalRankingList = await handleShareType2(prono);
+      }
+
+      // 5. 分配分數（假設最高分 90，最低分 70）
+      const scores = distributeScores(70, 90, finalRankingList.length);
+
+      // 6. 插入或更新合併排序結果及其分數
+      const insertPromises = finalRankingList.map((stuno, index) => {
+        const final_rank = index + 1;
+        const score = scores[index]; // 根據排序位置分配的分數
+        const isAdmitted = final_rank <= admissionCount ? '錄取' : '未錄取'; // 根據錄取人數決定是否錄取
+        const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ?, admit = ? WHERE stuno = ?';
+
+        // 使用 final_rank, score, 和 isAdmitted 更新資料庫
+        return pool.query(updateQuery, [final_rank, score, isAdmitted, stuno]);
       });
+
+      await Promise.all(insertPromises);
+
+      res.json({ success: true, message: '合併排序和分數分配成功儲存' });
     }
-
-    // 處理合併排序
-    const share_type = projectResult[0][0].share_type; // 獲取 share_type
-    let finalRankingList = [];
-    if (share_type == 1) {
-      finalRankingList = await handleShareType1(prono);
-    } else if (share_type == 2) {
-      finalRankingList = await handleShareType2(prono);
-    }
-
-    // 5. 分配分數（假設最高分 90，最低分 70）
-    const scores = distributeScores(70, 90, finalRankingList.length);
-
-    // 6. 插入或更新合併排序結果及其分數
-    const insertPromises = finalRankingList.map((stuno, index) => {
-      const final_rank = index + 1;
-      const score = scores[index]; // 根據排序位置分配的分數
-      const isAdmitted = final_rank <= admissionCount ? '錄取' : '未錄取'; // 根據錄取人數決定是否錄取
-      const updateQuery = 'UPDATE `student-project`.`student` SET final_ranking = ?, final_score = ?, admit = ? WHERE stuno = ?';
-
-      // 使用 final_rank, score, 和 isAdmitted 更新資料庫
-      return pool.query(updateQuery, [final_rank, score, isAdmitted, stuno]);
-    });
-
-    await Promise.all(insertPromises);
-
-    res.json({ success: true, message: '合併排序和分數分配成功儲存' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: '伺服器錯誤' });
