@@ -20,7 +20,7 @@ router.get('/:prono', async (req, res) => {
     console.log(ProjectRows)
     if (ProjectRows.length === 0) {
       return res.status(404).json({ error: '未找到此專案' });
-    }
+    } 
 
     res.json(ProjectRows);
   } catch (error) {
@@ -28,7 +28,6 @@ router.get('/:prono', async (req, res) => {
     res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
   }
 });
-
 
 // 專案名稱, 學制
 router.post('/name', async (req, res) => {
@@ -56,10 +55,9 @@ router.post('/name', async (req, res) => {
   }
 });
 
-
 // 第一階段, 結束日期
-router.get('/date', async (req, res) => {
-  const { phase1, endDate, prono } = req.query; // 增加 prono 參數
+router.post('/date', async (req, res) => {
+  const { phase1, endDate, prono } = req.body; // 增加 prono 參數
   let updates = [];
   let params = [];
 
@@ -90,34 +88,56 @@ router.get('/date', async (req, res) => {
   }
 });
 
-
 // 錄取人數
-router.get('/admissions', async (req, res) => {
-  const { admissions, prono } = req.query; // 增加 prono 參數
-  let updates = [];
-  let params = [];
+router.post('/admissions', async (req, res) => {
+  const { admissions, prono } = req.body; // 取得 admissions 和 prono
+
+  // SQL 更新語句
+  const query = `UPDATE \`student-project\`.\`project\` SET admissions = ? WHERE prono = ?`;
 
   if (admissions) {
-    updates.push('admissions = ?');
-    params.push(admissions);
+    try {
+      // 執行查詢，並將結果存入 result 變數
+      const [result] = await pool.query(query, [admissions, prono]);
+
+      // 檢查是否有更新行數 (affectedRows)
+      if (result.affectedRows > 0) {
+        res.json({ message: '更新成功', result });
+      } else {
+        res.status(404).json({ message: '項目未找到' });
+      }
+    } catch (error) {
+      console.error('Error in database query:', error);
+      res.status(500).send('更新專案資料時發生錯誤');
+    }
+  } else {
+    return res.status(400).json({ message: 'admissions 是必填欄位' });
   }
+});
+router.post('/type', async (req, res) => {
+  const { type, prono } = req.body; // 取得 admissions 和 prono
 
-  // 確保有查詢和參數
-  if (updates.length === 0) {
-    return res.status(400).send('沒有提供更新參數');
+  // SQL 更新語句
+  const query = `UPDATE \`student-project\`.\`project\` SET share_type = ? WHERE prono = ?`;
+
+  if (type) {
+    try {
+      // 執行查詢，並將結果存入 result 變數
+      const [result] = await pool.query(query, [type, prono]);
+
+      // 檢查是否有更新行數 (affectedRows)
+      if (result.affectedRows > 0) {
+        res.json({ message: '更新成功', result });
+      } else {
+        res.status(404).json({ message: '項目未找到' });
+      }
+    } catch (error) {
+      console.error('Error in database query:', error);
+      res.status(500).send('更新專案資料時發生錯誤');
+    }
+  } else {
+    return res.status(400).json({ message: '有資料為空' });
   }
-
-  const query = `UPDATE \`student-project\`.\`project\` SET ${updates.join(', ')} WHERE prono = ?`;
-  params.push(prono); // 將 prono 加入參數
-
-  try {
-    const [result] = await pool.query(query, params);
-    res.json({ message: '更新成功', result });
-  } catch (error) {
-    console.error('Error in database query:', error);
-    res.status(500).send('Error updating project data');
-  }
-
 });
 
 
