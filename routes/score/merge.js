@@ -272,7 +272,7 @@ router.post('/', async (req, res) => {
 
   try {
     // 1. 獲取錄取人數
-    const projectQuery = 'SELECT admissions, share_type FROM `student-project`.project WHERE prono = ?';
+    const projectQuery = 'SELECT admissions, phase2, share_type FROM `student-project`.project WHERE prono = ?';
     const projectResult = await pool.query(projectQuery, [prono]);
     const admissionCount = projectResult[0][0].admissions;
     const phase2 = projectResult[0][0].phase2;
