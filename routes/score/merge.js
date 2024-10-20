@@ -108,7 +108,7 @@ function weightedRanking(allEvaluations) {
 }
 
 // 處理 share_type 為 1 的邏輯
-async function handleShareType1(prono, phase2, admissionCount) {
+async function handleShareType1(prono, phase2) {
   const sortedLists = [];
   const collaborators = await pool.query('SELECT colno FROM collaborator WHERE prono = ?', [prono]);
 
@@ -293,7 +293,7 @@ router.post('/', async (req, res) => {
       const share_type = projectResult[0][0].share_type; // 獲取 share_type
       let finalRankingList = [];
       if (share_type == 1) {
-        finalRankingList = await handleShareType1(prono, phase2, admissionCount);
+        finalRankingList = await handleShareType1(prono, phase2);
       } else if (share_type == 2) {
         finalRankingList = await handleShareType2(prono);
       }
