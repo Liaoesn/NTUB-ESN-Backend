@@ -88,11 +88,12 @@ router.post('/:prono', async (req, res) => {
 
         // 是否排序完成
         const complete = rows.every(row => row.ranking !== null); // 如果所有學生都有 ranking，則 complete 為 true
+
         
         // 返回查詢結果
         res.json({
             rows,
-            date,
+            date: date[0].phase2,
             completed_count: completedEvaluations[0].completed_count,
             total_count: totalStudents[0].total_count,
             completion_rate: completionRate.toFixed(2) + '%',
