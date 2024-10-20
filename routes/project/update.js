@@ -115,7 +115,7 @@ router.post('/admissions', async (req, res) => {
   }
 });
 router.post('/type', async (req, res) => {
-  const { type, prono } = req.body; // 取得 admissions 和 prono
+  const { type, prono } = req.body; // 取得 type 和 prono
 
   // SQL 更新語句
   const query = `UPDATE \`student-project\`.\`project\` SET share_type = ? WHERE prono = ?`;
@@ -141,105 +141,137 @@ router.post('/type', async (req, res) => {
 });
 
 
-// 添加協作老師的功能
-async function addCollaborators(prono, usernoArray) {
+
+async function AssEvaInDb(prono) {
   try {
     const connection = await pool.getConnection();
 
-    // 開始交易
-    await connection.beginTransaction();
+    // 查詢 project 資料表中的 share_type
+    const [projectRows] = await connection.query(
+      'SELECT share_type FROM project WHERE prono = ?',
+      [prono]
+    );
+    
+    if (projectRows.length === 0) {
+      throw new Error(`No project found with prono: ${prono}`);
+    }
 
-    // 查詢該 prono 已經有的 colno
-    const [rows] = await connection.query('SELECT colno FROM `student-project`.`collaborator`  WHERE prono = ?', [prono]);
+    const shareType = projectRows[0].share_type;
 
-    // 找到目前最大的後兩位數，若無資料則從 0 開始
-    let maxSuffix = 0;
-    if (rows.length > 0) {
-      rows.forEach(row => {
-        const suffix = parseInt(row.colno.slice(-2)); // 取得 colno 的最後兩位數
-        if (suffix > maxSuffix) {
-          maxSuffix = suffix; // 找出目前最大的後兩位數
+    // 使用 COUNT 查詢此 prono 下的學生總數
+    const [studentCountResult] = await connection.query(
+      'SELECT COUNT(*) AS studentCount FROM student WHERE prono = ?',
+      [prono]
+    );
+    const studentCount = studentCountResult[0].studentCount;
+
+    if (studentCount === 0) {
+      throw new Error(`No students found with prono: ${prono}`);
+    }
+
+    // 使用 COUNT 查詢與此 prono 有關的教師總數
+    const [collaboratorCountResult] = await connection.query(
+      'SELECT COUNT(*) AS collaboratorCount FROM collaborator WHERE prono = ?',
+      [prono]
+    );
+    const collaboratorCount = collaboratorCountResult[0].collaboratorCount;
+
+    if (collaboratorCount === 0) {
+      throw new Error(`No collaborators found with prono: ${prono}`);
+    }
+
+    // 獲取所有學生和協作老師的資料
+    const [students] = await connection.query(
+      'SELECT stuno FROM student WHERE prono = ?',
+      [prono]
+    );
+    const [collaborators] = await connection.query(
+      'SELECT colno FROM collaborator WHERE prono = ?',
+      [prono]
+    );
+
+    let assnoCounter = 100;
+    const currentMonth = new Date().getMonth() + 1; // 取得當前月份
+    const pronoPrefix = prono.toString().substring(0, 3); // prono 前三位
+
+    if (shareType === 1) {
+      // 平均分配學生給每個協作老師
+      const studentsPerTeacher = Math.floor(studentCount / collaboratorCount);
+      let extraStudents = studentCount % collaboratorCount;
+      let studentIndex = 0;
+
+      for (const collaborator of collaborators) {
+        const assignedStudents = students.slice(
+          studentIndex,
+          studentIndex + studentsPerTeacher
+        );
+
+        // 將學生分配給此協作老師
+        for (const student of assignedStudents) {
+          const assno = `${pronoPrefix}${currentMonth}${assnoCounter}`;
+          await connection.query(
+            'INSERT INTO assignment (stuno, colno, assno) VALUES (?, ?, ?)',
+            [student.stuno, collaborator.colno, assno]
+          );
+
+          const evano = `${assno}5`; // 產生 evano
+          await connection.query(
+            'INSERT INTO evaluations (assno, evano) VALUES (?, ?)',
+            [assno, evano]
+          );
+
+          assnoCounter++;
         }
-      });
-    }
 
-    // 準備插入語句
-    const insertQuery = 'INSERT INTO `student-project`.`collaborator` (colno, prono, userno) VALUES (?, ?, ?)';
-
-    // 對於每個 userno，生成新的 colno
-    for (const userno of usernoArray) {
-      // 手動生成 colno：前面是 prono，後面是兩位數的遞增數字
-      const newSuffix = maxSuffix + 1; // 新的
-      const colno = `${prono}${String(newSuffix).padStart(2, '0')}`; // 確保兩位數格式
-
-      // 插入資料
-      await connection.query(insertQuery, [colno, prono, userno]);
-
-      // 更新 maxSuffix
-      maxSuffix = newSuffix;
-    }
-
-    // 查詢有該 prono 的學生
-    const [students] = await connection.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ?', [prono]);
-
-    // 生成 assno 的邏輯，依照 addAssignmentInDb 的規則
-    const currentDate = new Date();
-    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 取得當前月份
-    let assNoPrefix = prono.slice(0, 3); // prono 的前三位
-    let assNo = `${assNoPrefix}${currentMonth}100`; // 假設 assno 以 prono 前三位 + 當前月份 + 序號 100 開始
-
-    const [existingAssignments] = await connection.query('SELECT assno FROM `student-project`.`assignment` WHERE assno LIKE ?', [`${assNoPrefix}${currentMonth}%`]);
-
-    // 獲取現有分配的最大序號
-    let maxAssSuffix = 100;
-    if (existingAssignments.length > 0) {
-      maxAssSuffix = Math.max(...existingAssignments.map(a => parseInt(a.assno.slice(-3))));
-    }
-
-    // 計算每個老師應分配的學生數量
-    const studentsPerTeacher = Math.floor(students.length / newColnos.length);
-    let remainingStudents = students.length % newColnos.length; // 分配剩餘的學生
-
-    let studentIndex = 0;
-    const assignmentQuery = 'INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)';
-    const evaluationQuery = 'INSERT INTO `student-project`.`evaluation` (evano, assno) VALUES (?, ?)';
-
-    // 平均分配學生
-    for (const colno of newColnos) {
-      for (let i = 0; i < studentsPerTeacher; i++) {
-        const newAssNo = `${assNoPrefix}${currentMonth}${String(maxAssSuffix + 1).padStart(3, '0')}`; // 生成新的 assno
-        await connection.query(assignmentQuery, [newAssNo, colno, students[studentIndex].stuno]);
-
-        // 生成 evano 規則為 assno 後加固定數 5
-        const evaNo = `${newAssNo}5`;
-        await connection.query(evaluationQuery, [evaNo, newAssNo]);
-
-        maxAssSuffix++; // 增加 assno 序號
-        studentIndex++;
+        studentIndex += studentsPerTeacher;
       }
 
-      // 如果有剩餘學生，額外分配一個給該老師
-      if (remainingStudents > 0) {
-        const newAssNo = `${assNoPrefix}${currentMonth}${String(maxAssSuffix + 1).padStart(3, '0')}`;
-        await connection.query(assignmentQuery, [newAssNo, colno, students[studentIndex].stuno]);
+      // 隨機分配剩餘的學生
+      while (extraStudents > 0) {
+        const randomIndex = Math.floor(Math.random() * collaboratorCount);
+        const randomCollaborator = collaborators[randomIndex];
+        const extraStudent = students[studentIndex];
 
-        const evaNo = `${newAssNo}5`;
-        await connection.query(evaluationQuery, [evaNo, newAssNo]);
+        const assno = `${pronoPrefix}${currentMonth}${assnoCounter}`;
+        await connection.query(
+          'INSERT INTO assignment (stuno, colno, assno) VALUES (?, ?, ?)',
+          [extraStudent.stuno, randomCollaborator.colno, assno]
+        );
 
-        maxAssSuffix++; // 增加 assno 序號
+        const evano = `${assno}5`; // 產生 evano
+        await connection.query(
+          'INSERT INTO evaluations (assno, evano) VALUES (?, ?)',
+          [assno, evano]
+        );
+
+        assnoCounter++;
         studentIndex++;
-        remainingStudents--;
+        extraStudents--;
+      }
+    } else if (shareType === 2) {
+      // 將每個學生分配給每個協作老師
+      for (const student of students) {
+        for (const collaborator of collaborators) {
+          const assno = `${pronoPrefix}${currentMonth}${assnoCounter}`;
+          await connection.query(
+            'INSERT INTO assignment (stuno, colno, assno) VALUES (?, ?, ?)',
+            [student.stuno, collaborator.colno, assno]
+          );
+
+          const evano = `${assno}5`; // 產生 evano
+          await connection.query(
+            'INSERT INTO evaluations (assno, evano) VALUES (?, ?)',
+            [assno, evano]
+          );
+          
+          assnoCounter++;
+        }
       }
     }
 
-    // 提交交易
-    await connection.commit();
-    console.log('Collaborators added successfully!');
-
-    connection.release();
-  } catch (error) {
-    console.error('Error adding collaborators:', error);
-    if (connection) await connection.rollback();
+    console.log('Students assigned successfully!');
+  } catch (err) {
+    console.error('Error assigning students:', err.message);
   }
 }
 
@@ -310,6 +342,9 @@ try {
     );
     console.log('已新增的教師:', values);
   }
+
+  // 調用 AssEvaInDb 函數
+  await AssEvaInDb(prono);
 
   return res.status(200).json({
     message: '操作成功',

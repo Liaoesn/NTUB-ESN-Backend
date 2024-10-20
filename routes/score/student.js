@@ -20,6 +20,37 @@ router.post('/:prono', async (req, res) => {
                 SELECT * 
                 FROM \`student-project\`.project p
                 JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
+                JOIN assignment a ON a.colno = c.colno
+                JOIN student s ON s.stuno = a.stuno
+                LEFT JOIN resume r ON r.stuno = s.stuno
+                LEFT JOIN autobiography au ON au.stuno = s.stuno
+                LEFT JOIN studetails sd ON sd.stuno = s.stuno
+                JOIN evaluations e ON e.assno = a.assno
+                WHERE p.prono = ?
+                order by e.evano ASC;
+            `, [userno, prono]);
+
+            // 查詢協作者已完成評分的學生數量
+            [completedEvaluations] = await pool.query(`
+                SELECT COUNT(e.evano) AS completed_count
+                FROM \`student-project\`.evaluations e
+                JOIN assignment a ON a.assno = e.assno
+                JOIN collaborator c ON a.colno = c.colno
+                WHERE e.ranking IS NOT NULL AND c.prono = ?;
+            `, [prono]);
+
+            // 查詢協作者負責的總學生數
+            [totalStudents] = await pool.query(`
+                SELECT COUNT(a.stuno) AS total_count
+                FROM \`student-project\`.assignment a
+                JOIN collaborator c ON a.colno = c.colno
+                WHERE c.prono = ?;
+            `, [prono]);        
+        }else{
+            [rows] = await pool.query(`
+                SELECT * 
+                FROM \`student-project\`.project p
+                JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
                 JOIN assignment a ON a.colno = c.colno AND a.assno LIKE '2%'
                 JOIN student s ON s.stuno = a.stuno
                 LEFT JOIN resume r ON r.stuno = s.stuno
@@ -46,49 +77,21 @@ router.post('/:prono', async (req, res) => {
                 JOIN collaborator c ON a.colno = c.colno
                 WHERE c.prono = ? AND a.assno LIKE '2%';
             `, [prono]);
-        }else{
-            [rows] = await pool.query(`
-                SELECT * 
-                FROM \`student-project\`.project p
-                JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
-                JOIN assignment a ON a.colno = c.colno
-                JOIN student s ON s.stuno = a.stuno
-                LEFT JOIN resume r ON r.stuno = s.stuno
-                LEFT JOIN autobiography au ON au.stuno = s.stuno
-                LEFT JOIN studetails sd ON sd.stuno = s.stuno
-                JOIN evaluations e ON e.assno = a.assno
-                WHERE p.prono = ?
-                order by e.evano ASC;
-            `, [userno, prono]);
-
-            // 查詢協作者已完成評分的學生數量
-            [completedEvaluations] = await pool.query(`
-                SELECT COUNT(e.evano) AS completed_count
-                FROM \`student-project\`.evaluations e
-                JOIN assignment a ON a.assno = e.assno
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE e.ranking IS NOT NULL AND c.prono = ?;
-            `, [prono]);
-
-            // 查詢協作者負責的總學生數
-            [totalStudents] = await pool.query(`
-                SELECT COUNT(a.stuno) AS total_count
-                FROM \`student-project\`.assignment a
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE c.prono = ?;
-            `, [prono]);
-
         }
 
         // 完成比例計算
         const completionRate = (completedEvaluations[0].completed_count / totalStudents[0].total_count) * 100;
 
+        // 是否排序完成
+        const complete = rows.every(row => row.ranking !== null); // 如果所有學生都有 ranking，則 complete 為 true
+        
         // 返回查詢結果
         res.json({
             rows,
             completed_count: completedEvaluations[0].completed_count,
             total_count: totalStudents[0].total_count,
-            completion_rate: completionRate.toFixed(2) + '%'
+            completion_rate: completionRate.toFixed(2) + '%',
+            complete
         });
     } catch (error) {
         console.error(error);
