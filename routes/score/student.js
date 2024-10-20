@@ -30,6 +30,8 @@ router.post('/:prono', async (req, res) => {
                 order by e.evano ASC;
             `, [userno, prono]);
 
+            [date] = await pool.query(`SELECT phase1 FROM \`student-project\`.project p WHERE p.prono = ?`, [prono]);
+
             // 查詢協作者已完成評分的學生數量
             [completedEvaluations] = await pool.query(`
                 SELECT COUNT(e.evano) AS completed_count
@@ -61,6 +63,8 @@ router.post('/:prono', async (req, res) => {
                 order by e.evano ASC;
             `, [userno, prono]);
 
+            [date] = await pool.query(`SELECT phase2 FROM \`student-project\`.project p WHERE p.prono = ?`, [prono]);
+
             // 查詢協作者已完成評分的學生數量
             [completedEvaluations] = await pool.query(`
                 SELECT COUNT(e.evano) AS completed_count
@@ -88,6 +92,7 @@ router.post('/:prono', async (req, res) => {
         // 返回查詢結果
         res.json({
             rows,
+            date,
             completed_count: completedEvaluations[0].completed_count,
             total_count: totalStudents[0].total_count,
             completion_rate: completionRate.toFixed(2) + '%',
