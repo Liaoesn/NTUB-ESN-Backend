@@ -29,13 +29,13 @@ router.post('/:prono', async (req, res) => {
         const [existingAssignments] = await pool.query('SELECT assno FROM `student-project`.`assignment` WHERE assno LIKE ?', [`${assNoPrefix}${currentMonth}%`]);
         let maxAssSuffix = 100;
         if (existingAssignments.length > 0) {
-            maxAssSuffix = Math.max(...existingAssignments.map(a => parseInt(a.assno.slice(-3))));
+            maxAssSuffix = Math.max(...existingAssignments.map(a => parseInt(String(a.assno).slice(-3))));
         }
 
         const assignmentQuery = 'INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)';
         const evaluationQuery = 'INSERT INTO `student-project`.`evaluations` (evano, assno) VALUES (?, ?)';
 
-        // 將每位學生分配給每位老師
+        // 將每位學生分配給每位老師並創建新的 evaluations 記錄
         for (const colno of collaborators) {
             for (const studentId of stuno) {
                 // 在生成的 assno 前加上分配回合的標記，例如 "2" 用於第二次分配
@@ -44,13 +44,13 @@ router.post('/:prono', async (req, res) => {
 
                 // 生成 evano，規則為 assno 後加固定數 5
                 const evaNo = `${newAssNo}5`;
-                await pool.query(evaluationQuery, [evaNo, newAssNo]);
+                await pool.query(evaluationQuery, [evaNo, newAssNo]); // 插入 evaluations 記錄
 
                 maxAssSuffix++; // 增加 assno 序號
             }
         }
 
-        res.status(200).json({ message: '學生分配成功' });
+        res.status(200).json({ message: '學生分配並創建評分記錄成功' });
 
     } catch (error) {
         console.error('獲取資料失敗:', error);

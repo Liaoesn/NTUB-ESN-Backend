@@ -16,7 +16,8 @@ router.get('/', async (req, res) => {
                     FROM \`student-project\`.project p
                     LEFT JOIN collaborator c ON c.userno = ? AND p.prono = c.prono
                     JOIN user u on u.userno = p.create_id
-                    WHERE (c.userno = ? or p.create_id = ?)  
+                    WHERE (c.userno = ? or p.create_id = ?)
+                    ORDER BY p.startdate DESC
                 `;
 
         let params = [userno, userno, userno];
