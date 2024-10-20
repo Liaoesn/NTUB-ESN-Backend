@@ -26,11 +26,25 @@ const createProjectInDb = async (ProjectInfo) => {
 
     if (result.length > 0) {
         const latestProNo = result[0].prono;
-        const latestSequence = latestProNo % 10 + 1; // 提取最新的序號部分並加1
+        const latestSequence = latestProNo % 1000 + 1; // 提取最新的序號部分並加1
         newProNo = `${currentYear}${eduCode}${latestSequence}`;
     } else {
         newProNo = `${currentYear}${eduCode}001`;
     }
+
+    // 確保沒有重複的 prono
+    let duplicateCheck = [];
+    do {
+        // 檢查是否有重複的 prono
+        [duplicateCheck] = await pool.query('SELECT prono FROM `student-project`.`project` WHERE prono = ?', [newProNo]);
+
+        if (duplicateCheck.length > 0) {
+            // 如果有重複，生成一個新的序號
+            const latestSequence = parseInt(newProNo.slice(-3)) + 1; // 提取後三位數的序號部分，並加1
+            newProNo = `${currentYear}${eduCode}${latestSequence.toString().padStart(3, '0')}`; // 確保序號是三位數
+        }
+    } while (duplicateCheck.length > 0); // 如果重複，繼續生成新編號
+    
     await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions, share_type ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
         newProNo, ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.userno, '開放中', ProjectInfo.admissions, ProjectInfo.share_type
     ]);
