@@ -26,8 +26,7 @@ const createProjectInDb = async (ProjectInfo) => {
 
     if (result.length > 0) {
         const latestProNo = result[0].prono;
-        const latestSequence = ((latestProNo + 1).toString()).slice(-3); 
-        // 提取最新的序號部分並加1
+        const latestSequence = ((latestProNo + 1).toString()).slice(-3);
         newProNo = `${currentYear}${eduCode}${latestSequence}`;
     } else {
         newProNo = `${currentYear}${eduCode}001`;
