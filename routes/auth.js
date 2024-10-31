@@ -12,33 +12,13 @@ const client = new OAuth2Client({
 
 // 查看資料庫內有無紀錄
 const getUserFromDb = async (email) => {
-  const [rows] = await pool.query('SELECT * FROM `student-project`.`user` WHERE email = ?', [email]);
+  const [rows] = await pool.query('SELECT * FROM ESN.users WHERE email = ?', [email]);
   return rows[0];
 };
 
 const createUserInDb = async (userInfo) => {
-  // 動態獲取當前年份和月份
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear() - 1911; // 將西元年轉為民國年
-  const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0'); // 獲取月份並補齊兩位
-
-  // 獲取當前年份內最新的 userno
-  const [result] = await pool.query(
-    'SELECT userno FROM `student-project`.`user` WHERE userno LIKE ? ORDER BY userno DESC LIMIT 1',
-    [`${currentYear}%`]
-  );
-
-  let newUserNo;
-  if (result.length > 0) {
-    const latestUserNo = result[0].userno;
-    const latestSequence = latestUserNo % 1000 + 1; // 提取最新的序號部分並加1
-    newUserNo = parseInt(`${currentYear}${currentMonth}${String(latestSequence).padStart(3, '0')}`);
-  } else {
-    newUserNo = `${currentYear}${currentMonth}001`;
-  }
-
-  await pool.query('INSERT INTO `student-project`.`user` (userno, username, avatar_url, email, permissions, state) VALUES (?, ?, ?, ?, ?, ?)', [
-    newUserNo, userInfo.name, userInfo.picture, userInfo.email, 0, '1'
+  await pool.query('INSERT INTO ESN.users (user_name, avatar_url, email, permissions, state) VALUES (?, ?, ?, ?, ?)', [
+    userInfo.name, userInfo.picture, userInfo.email, 0, '1'
   ]);
 
   return {
@@ -74,7 +54,7 @@ router.get('/callback', async (req, res) => {
     const userInfo = userInfoResponse.data;
     const userEmail = userInfo.email;
 
-    if (!userEmail.endsWith('@ntub.edu.tw')) {
+    if (!userEmail.endsWith('.edu.tw')) {
       return res.redirect('http://localhost:3000/user/loginFail');
     }
 
