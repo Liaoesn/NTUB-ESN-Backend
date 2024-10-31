@@ -10,12 +10,12 @@ router.get('/', async (req, res) => {
         const { term, permissions, state, role } = req.query;
 
         // 構建基本的 SQL 查詢語句
-        let sql = 'SELECT CEILING(COUNT(*) / 5) as page FROM `student-project`.`user` WHERE 1=1';
+        let sql = 'SELECT CEILING(COUNT(*) / 5) as page FROM ESN.users WHERE 1=1';
         const params = [];
 
         // 根據查詢參數動態構建 SQL 語句
         if (term) {
-            sql += ' AND (username LIKE ? OR email LIKE ?)';
+            sql += ' AND (user_name LIKE ? OR email LIKE ?)';
             params.push(`%${term}%`);
             params.push(`%${term}%`);
         }

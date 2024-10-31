@@ -10,13 +10,13 @@ router.put('/:userno', async (req, res) => {
         const { permissions, state } = req.body;
 
         // 查詢當前使用者的資料
-        const [existingRows] = await pool.query('SELECT `permissions`, `state` FROM `student-project`.`user` WHERE `userno` = ?', [userno]);
+        const [existingRows] = await pool.query('SELECT `permissions`, `state` FROM ESN.users WHERE `user_no` = ?', [userno]);
         if (existingRows.length === 0) {
             return res.status(404).json({ error: '未找到使用者' });
         }
 
         const existingUser = existingRows[0];
-        let query = 'UPDATE `student-project`.`user` SET ';
+        let query = 'UPDATE ESN.users SET ';
         let values = [];
         let fieldsToUpdate = [];
 
