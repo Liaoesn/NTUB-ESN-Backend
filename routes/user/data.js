@@ -7,8 +7,9 @@ const roleMap = require("../user/roleMap");
 router.get('/:userno', async (req, res) => {
     try {
         const userno = req.params.userno;
+
         // 查詢指定 userno 的使用者資料
-        const [rows] = await pool.query('SELECT * FROM `student-project`.`user` WHERE `userno` = ?', [userno]);
+        const [rows] = await pool.query('SELECT * FROM ESN.users WHERE `user_no` = ?', [userno]);
 
         if (rows.length === 0) {
             return res.status(404).json({ error: '未找到使用者' });
