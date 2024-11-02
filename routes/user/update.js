@@ -39,7 +39,7 @@ router.put('/:userno', async (req, res) => {
 
         // 組合更新的 SQL 語句
         query += fieldsToUpdate.join(', ');
-        query += ' WHERE `userno` = ?';
+        query += ' WHERE `user_no` = ?';
         values.push(userno);
 
         console.log(query);
