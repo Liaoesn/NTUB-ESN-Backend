@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
         let query = `SELECT p.*, u.user_name, LEFT(p.pro_no, 3) AS prono_prefix
                     FROM ESN.projects p
                     JOIN users u ON p.create_id = u.user_no
-                    WHERE p.state = '已關閉'
+                    WHERE p.status = '已關閉'
                 `;
 
         let params = [];

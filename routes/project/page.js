@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
                     FROM ESN.projects p
                     JOIN ESN.users u
                     ON p.create_id = u.user_no
-                    WHERE p.state = '已關閉'
+                    WHERE p.status = '已關閉'
                 `;
 
         let params = [];
