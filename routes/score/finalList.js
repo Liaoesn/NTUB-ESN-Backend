@@ -2,23 +2,23 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-router.get('/:prono', async (req, res) => {
+router.get('/:pro_no', async (req, res) => {
     try {
-        const prono = req.params.prono;
+        const pro_no = req.params.pro_no;
 
         const [rows] = await pool.query(`
             SELECT *
-            FROM \`student-project\`.project p
-            LEFT JOIN collaborator c ON p.prono = c.prono
-            LEFT JOIN assignment a ON c.colno = a.colno
-            LEFT JOIN evaluations e ON a.assno = e.assno
-            LEFT JOIN student s ON p.prono = s.prono AND s.stuno = a.stuno
-            LEFT JOIN resume r ON s.stuno = r.stuno
-			LEFT JOIN autobiography au ON s.stuno = au.stuno
-			LEFT JOIN studetails d ON s.stuno = d.stuno
-            WHERE p.prono = ?
+            FROM ESN.projects p
+            LEFT JOIN collaborators c ON p.pro_no = c.pro_no
+            LEFT JOIN assignments a ON c.col_no = a.col_no
+            LEFT JOIN evaluations e ON a.ass_no = e.ass_no
+            LEFT JOIN students s ON p.pro_no = s.pro_no AND s.stu_no = a.stu_no
+            LEFT JOIN resumes r ON s.stu_no = r.stu_no
+			LEFT JOIN autobiographys au ON s.stu_no = au.stu_no
+			LEFT JOIN student_details d ON s.stu_no = d.stu_no
+            WHERE p.pro_no = ?
             ORDER BY s.final_ranking ASC
-        `, [prono]);
+        `, [pro_no]);
 
         // 返回查詢結果
         res.json(rows); // 返回合併後的資料

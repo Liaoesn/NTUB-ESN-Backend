@@ -2,92 +2,92 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-// 根據 prono 獲取項目及相關學生資料
-router.post('/:prono', async (req, res) => {
+// 根據 pro_no 獲取項目及相關學生資料
+router.post('/:pro_no', async (req, res) => {
     try {
-        const prono = req.params.prono;
-        const userno = req.body.userno || req.session.user.userno; // 從 session 中取得 userno
-        const [projectRows] = await pool.query('SELECT phase2 FROM `student-project`.project WHERE prono = ?', [prono]);
+        const pro_no = req.params.pro_no;
+        const user_no = req.body.user_no || req.session.user.user_no; // 從 session 中取得 user_no
+        const [projectsRows] = await pool.query('SELECT phase2 FROM `student-projects`.projects WHERE pro_no = ?', [pro_no]);
 
-        if (projectRows.length === 0) {
+        if (projectsRows.length === 0) {
             return res.status(404).json({ error: '找不到對應的專案' });
         }
-        const phase2 = projectRows[0].phase2;
+        const phase2 = projectsRows[0].phase2;
         let rows, completedEvaluations, totalStudents;
 
         if (!phase2){
             [rows] = await pool.query(`
                 SELECT * 
-                FROM \`student-project\`.project p
-                JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
-                JOIN assignment a ON a.colno = c.colno
-                JOIN student s ON s.stuno = a.stuno
-                LEFT JOIN resume r ON r.stuno = s.stuno
-                LEFT JOIN autobiography au ON au.stuno = s.stuno
-                LEFT JOIN studetails sd ON sd.stuno = s.stuno
-                JOIN evaluations e ON e.assno = a.assno
-                WHERE p.prono = ?
-                order by e.evano ASC;
-            `, [userno, prono]);
+                FROM ESN.projects p
+                JOIN collaborators c ON c.pro_no = p.pro_no AND c.user_no = ?
+                JOIN assignments a ON a.col_no = c.col_no
+                JOIN student s ON s.stu_no = a.stu_no
+                LEFT JOIN resumes r ON r.stu_no = s.stu_no
+                LEFT JOIN autobiography au ON au.stu_no = s.stu_no
+                LEFT JOIN studetails sd ON sd.stu_no = s.stu_no
+                JOIN evaluations e ON e.ass_no = a.ass_no
+                WHERE p.pro_no = ?
+                order by e.eva_no ASC;
+            `, [user_no, pro_no]);
 
-            [date] = await pool.query(`SELECT phase1 FROM \`student-project\`.project p WHERE p.prono = ?`, [prono]);
+            [date] = await pool.query(`SELECT phase1 FROM ESN.projects p WHERE p.pro_no = ?`, [pro_no]);
 
             // 查詢協作者已完成評分的學生數量
             [completedEvaluations] = await pool.query(`
-                SELECT COUNT(e.evano) AS completed_count
-                FROM \`student-project\`.evaluations e
-                JOIN assignment a ON a.assno = e.assno
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE e.ranking IS NOT NULL AND c.prono = ?;
-            `, [prono]);
+                SELECT COUNT(e.eva_no) AS completed_count
+                FROM ESN.evaluations e
+                JOIN assignments a ON a.ass_no = e.ass_no
+                JOIN collaborators c ON a.col_no = c.col_no
+                WHERE e.score IS _noT NULL AND c.pro_no = ?;
+            `, [pro_no]);
 
             // 查詢協作者負責的總學生數
             [totalStudents] = await pool.query(`
-                SELECT COUNT(a.stuno) AS total_count
-                FROM \`student-project\`.assignment a
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE c.prono = ?;
-            `, [prono]);        
+                SELECT COUNT(a.stu_no) AS total_count
+                FROM ESN.assignments a
+                JOIN collaborators c ON a.col_no = c.col_no
+                WHERE c.pro_no = ?;
+            `, [pro_no]);        
         }else{
             [rows] = await pool.query(`
                 SELECT * 
-                FROM \`student-project\`.project p
-                JOIN collaborator c ON c.prono = p.prono AND c.userno = ?
-                JOIN assignment a ON a.colno = c.colno AND a.assno LIKE '2%'
-                JOIN student s ON s.stuno = a.stuno
-                LEFT JOIN resume r ON r.stuno = s.stuno
-                LEFT JOIN autobiography au ON au.stuno = s.stuno
-                LEFT JOIN studetails sd ON sd.stuno = s.stuno
-                JOIN evaluations e ON e.assno = a.assno
-                WHERE p.prono = ?
-                order by e.evano ASC;
-            `, [userno, prono]);
+                FROM ESN.projects p
+                JOIN collaborators c ON c.pro_no = p.pro_no AND c.user_no = ?
+                JOIN assignments a ON a.col_no = c.col_no AND a.ass_no LIKE '2%'
+                JOIN student s ON s.stu_no = a.stu_no
+                LEFT JOIN resumes r ON r.stu_no = s.stu_no
+                LEFT JOIN autobiography au ON au.stu_no = s.stu_no
+                LEFT JOIN studetails sd ON sd.stu_no = s.stu_no
+                JOIN evaluations e ON e.ass_no = a.ass_no
+                WHERE p.pro_no = ?
+                order by e.eva_no ASC;
+            `, [user_no, pro_no]);
 
-            [date] = await pool.query(`SELECT phase2 FROM \`student-project\`.project p WHERE p.prono = ?`, [prono]);
+            [date] = await pool.query(`SELECT phase2 FROM ESN.projects p WHERE p.pro_no = ?`, [pro_no]);
 
             // 查詢協作者已完成評分的學生數量
             [completedEvaluations] = await pool.query(`
-                SELECT COUNT(e.evano) AS completed_count
-                FROM \`student-project\`.evaluations e
-                JOIN assignment a ON a.assno = e.assno AND a.assno LIKE '2%'
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE e.ranking IS NOT NULL AND c.prono = ?;
-            `, [prono]);
+                SELECT COUNT(e.eva_no) AS completed_count
+                FROM ESN.evaluations e
+                JOIN assignments a ON a.ass_no = e.ass_no AND a.ass_no LIKE '2%'
+                JOIN collaborators c ON a.col_no = c.col_no
+                WHERE e.score IS _noT NULL AND c.pro_no = ?;
+            `, [pro_no]);
 
             // 查詢協作者負責的總學生數
             [totalStudents] = await pool.query(`
-                SELECT COUNT(a.stuno) AS total_count
-                FROM \`student-project\`.assignment a
-                JOIN collaborator c ON a.colno = c.colno
-                WHERE c.prono = ? AND a.assno LIKE '2%';
-            `, [prono]);
+                SELECT COUNT(a.stu_no) AS total_count
+                FROM ESN.assignments a
+                JOIN collaborators c ON a.col_no = c.col_no
+                WHERE c.pro_no = ? AND a.ass_no LIKE '2%';
+            `, [pro_no]);
         }
 
         // 完成比例計算
         const completionRate = (completedEvaluations[0].completed_count / totalStudents[0].total_count) * 100;
 
         // 是否排序完成
-        const complete = rows.every(row => row.ranking !== null); // 如果所有學生都有 ranking，則 complete 為 true
+        const complete = rows.every(row => row.score !== null); // 如果所有學生都有 score，則 complete 為 true
 
         
         // 返回查詢結果

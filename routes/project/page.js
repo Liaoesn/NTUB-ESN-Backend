@@ -3,19 +3,19 @@ const router = express.Router();
 const pool = require('../../lib/db');
 
 router.get('/', async (req, res) => {
-    if (!req.session || !req.session.user || !req.session.user.userno) {
+    if (!req.session || !req.session.user || !req.session.user.user_no) {
         return res.status(401).send('User not authenticated');
     }
     
     const { year, academic } = req.query;
-    const userno = req.session.user.userno; // 從 session 中取得 userno
+    const user_no = req.session.user.user_no; // 從 session 中取得 user_no
 
     try{
         // 基本查詢語句
         let query = `SELECT CEILING(COUNT(*) / 5) as page 
-                    FROM \`student-project\`.\`project\` p
-                    JOIN \`student-project\`.\`user\` u
-                    ON p.create_id = u.userno
+                    FROM ESN.projects p
+                    JOIN ESN.users u
+                    ON p.create_id = u.user_no
                     WHERE p.state = '已關閉'
                 `;
 
@@ -23,13 +23,13 @@ router.get('/', async (req, res) => {
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND LEFT(prono, 3) = ?';
+            query += ' AND LEFT(pro_no, 3) = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND SUBSTRING(prono, 4, 2) = ?';
+            query += ' AND SUBSTRING(pro_no, 4, 2) = ?';
             params.push(academic);
         }
 

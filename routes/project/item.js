@@ -2,20 +2,20 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-// 根據 prono 獲取項目及相關學生資料
-router.get('/:prono', async (req, res) => {
+// 根據 pro_no 獲取項目及相關學生資料
+router.get('/:pro_no', async (req, res) => {
     try {
-        const prono = req.params.prono;
+        const pro_no = req.params.pro_no;
 
         const [rows] = await pool.query(`
             SELECT * 
-            FROM \`student-project\`.project p
-            JOIN student s ON p.prono = s.prono
-            LEFT JOIN studetails sd ON s.stuno = sd.stuno
-            JOIN autobiography au ON s.stuno = au.stuno
-            JOIN \`resume\` r ON s.stuno = r.stuno
-            WHERE p.prono = ?;
-        `, [prono]);
+            FROM ESN.projects p
+            JOIN students s ON p.pro_no = s.pro_no
+            LEFT JOIN student_details sd ON s.stu_no = sd.stu_no
+            JOIN autobiographys au ON s.stu_no = au.stu_no
+            JOIN resumes r ON s.stu_no = r.stu_no
+            WHERE p.pro_no = ?;
+        `, [pro_no]);
 
         // 返回查詢結果
         res.json(rows); // 返回合併後的資料
