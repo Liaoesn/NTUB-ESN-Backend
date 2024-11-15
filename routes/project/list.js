@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
 
     try {
         // 基本查詢語句
-        let query = `SELECT p.*, u.user_name, LEFT(p.pro_no, 3) AS prono_prefix
+        let query = `SELECT p.*, u.user_name, pro_year
                     FROM ESN.projects p
                     JOIN users u ON p.create_id = u.user_no
                     WHERE p.status = '已關閉'
@@ -17,13 +17,13 @@ router.get('/', async (req, res) => {
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND LEFT(pro_no, 3) = ?';
+            query += ' AND pro_year = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND SUBSTRING(pro_no, 4, 2) = ?';
+            query += ' AND pro_acdemic = ?';
             params.push(academic);
         }
 

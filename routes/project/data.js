@@ -3,34 +3,34 @@ const router = express.Router();
 const pool = require('../../lib/db');
 
 router.get('/', async (req, res) => {
-    if (!req.session || !req.session.user || !req.session.user.userno) {
+    if (!req.session || !req.session.user || !req.session.user.user_no) {
         return res.status(401).send('User not authenticated');
     }
     
     const { year, academic, page = 1 } = req.query;
-    const userno = req.session.user.userno; // 從 session 中取得 userno
+    const user_no = req.session.user.user_no; // 從 session 中取得 user_no
 
     try{
         // 基本查詢語句
-        let query = `SELECT p.*, u.username, LEFT(p.prono, 3) AS prono_prefix
-                    FROM \`student-project\`.project p
-                    LEFT JOIN collaborator c ON c.userno = ? AND p.prono = c.prono
-                    JOIN user u on u.userno = p.create_id
-                    WHERE (c.userno = ? or p.create_id = ?)
-                    ORDER BY p.startdate DESC
+        let query = `SELECT p.*, u.user_name, pro_year
+                    FROM ESN.projects p
+                    LEFT JOIN collaborators c ON c.user_no = ? AND p.pro_no = c.pro_no
+                    JOIN users u on u.user_no = p.create_id
+                    WHERE (c.user_no = ? or p.create_id = ?)
+                    ORDER BY p.start_date DESC
                 `;
 
-        let params = [userno, userno, userno];
+        let params = [user_no, user_no, user_no];
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND LEFT(p.prono, 3) = ?';
+            query += ' AND pro_year = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND SUBSTRING(p.prono, 4, 2) = ?';
+            query += ' AND pro_academic = ?';
             params.push(academic);
         }
 

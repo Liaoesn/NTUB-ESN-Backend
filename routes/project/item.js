@@ -12,8 +12,8 @@ router.get('/:pro_no', async (req, res) => {
             FROM ESN.projects p
             JOIN students s ON p.pro_no = s.pro_no
             LEFT JOIN student_details sd ON s.stu_no = sd.stu_no
-            JOIN autobiographys au ON s.stu_no = au.stu_no
-            JOIN resumes r ON s.stu_no = r.stu_no
+            LEFT JOIN autobiographys au ON s.stu_no = au.stu_no
+            LEFT JOIN resumes r ON s.stu_no = r.stu_no
             WHERE p.pro_no = ?;
         `, [pro_no]);
 
