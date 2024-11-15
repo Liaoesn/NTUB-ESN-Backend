@@ -17,19 +17,20 @@ router.get('/', async (req, res) => {
                     LEFT JOIN collaborators c ON c.user_no = ? AND p.pro_no = c.pro_no
                     JOIN users u on u.user_no = p.create_id
                     WHERE (c.user_no = ? or p.create_id = ?)
+                    ORDER BY p.start_date DESC
                 `;
 
         let params = [user_no, user_no, user_no];
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND p.pro_year = ?';
+            query += ' AND pro_year = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND p.pro_academic = ?';
+            query += ' AND pro_academic = ?';
             params.push(academic);
         }
 
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
         // 分頁設定
         const pageSize = 5;
         const offset = (page - 1) * pageSize;
-        query += 'ORDER BY p.start_date DESC LIMIT ? OFFSET ?';
+        query += ' LIMIT ? OFFSET ?';
         params.push(pageSize, offset);
 
         // 執行查詢
