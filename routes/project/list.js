@@ -17,13 +17,13 @@ router.get('/', async (req, res) => {
 
         // 根據是否有 year 來構造查詢條件
         if (year) {
-            query += ' AND pro_year = ?';
+            query += ' AND p.pro_year = ?';
             params.push(year);
         }
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND pro_acdemic = ?';
+            query += ' AND p.pro_acdemic = ?';
             params.push(academic);
         }
 
