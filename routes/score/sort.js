@@ -13,8 +13,8 @@ router.post('/submit', async (req, res) => {
   try {
     // 更新每個排序後的 evaluation，逐條更新 ranking
     const updatePromises = sortOrder.map(item => {
-      const { evano, ranking } = item; // 從前端獲取 evano 和 ranking
-      const evalUpdateQuery = 'UPDATE `student-project`.`evaluations` SET ranking = ?, update_at = ? WHERE evano = ?';
+      const { eva_no, score } = item; // 從前端獲取 eva_no 和 score
+      const evalUpdateQuery = 'UPDATE ESN.evaluations SET score = ?, update_at = ? WHERE eva_no = ?';
 
       // 直接返回 pool.query 的 Promise
       return pool.query(evalUpdateQuery, [ranking, new Date(), evano]);

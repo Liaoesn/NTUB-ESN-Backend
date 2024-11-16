@@ -27,7 +27,7 @@ router.post('/:pro_no', async (req, res) => {
                 LEFT JOIN student_details sd ON sd.stu_no = s.stu_no
                 JOIN evaluations e ON e.ass_no = a.ass_no
                 WHERE p.pro_no = ?
-                order by e.eva_no ASC;
+                order by IFNULL(e.score, e.eva_no) ASC;
             `, [user_no, pro_no]);
 
             [date] = await pool.query(`SELECT phase1 FROM ESN.projects p WHERE p.pro_no = ?`, [pro_no]);
@@ -60,7 +60,7 @@ router.post('/:pro_no', async (req, res) => {
                 LEFT JOIN student_details sd ON sd.stu_no = s.stu_no
                 JOIN evaluations e ON e.ass_no = a.ass_no
                 WHERE p.pro_no = ?
-                order by e.eva_no ASC;
+                order by IFNULL(e.score, e.eva_no) ASC;
             `, [user_no, pro_no]);
 
             [date] = await pool.query(`SELECT phase2 FROM ESN.projects p WHERE p.pro_no = ?`, [pro_no]);

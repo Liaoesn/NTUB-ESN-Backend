@@ -9,9 +9,6 @@ router.get('/:pro_no', async (req, res) => {
         const [rows] = await pool.query(`
             SELECT *
             FROM ESN.projects p
-            LEFT JOIN collaborators c ON p.pro_no = c.pro_no
-            LEFT JOIN assignments a ON c.col_no = a.col_no
-            LEFT JOIN evaluations e ON a.ass_no = e.ass_no
             LEFT JOIN students s ON p.pro_no = s.pro_no AND s.stu_no = a.stu_no
             LEFT JOIN resumes r ON s.stu_no = r.stu_no
 			LEFT JOIN autobiographys au ON s.stu_no = au.stu_no
