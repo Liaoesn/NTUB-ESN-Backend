@@ -53,7 +53,7 @@ router.post('/:pro_no', async (req, res) => {
                 SELECT * 
                 FROM ESN.projects p
                 JOIN collaborators c ON c.pro_no = p.pro_no AND c.user_no = ?
-                JOIN assignments a ON a.col_no = c.col_no AND a.ass_no LIKE '2%'
+                JOIN assignments a ON a.col_no = c.col_no AND a.ass_no
                 JOIN students s ON s.stu_no = a.stu_no
                 LEFT JOIN resumes r ON r.stu_no = s.stu_no
                 LEFT JOIN autobiographys au ON au.stu_no = s.stu_no
