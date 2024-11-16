@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 
         // 根據是否有 academic 來構造查詢條件
         if (academic) {
-            query += ' AND p.pro_acdemic = ?';
+            query += ' AND p.pro_academic = ?';
             params.push(academic);
         }
 
