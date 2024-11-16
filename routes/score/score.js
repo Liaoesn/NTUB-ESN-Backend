@@ -4,20 +4,19 @@ const pool = require('../../lib/db');
 
 // 提交最終排序
 router.post('/submit', async (req, res) => {
-  const { sortOrder } = req.body; // sortOrder 為前端傳入的陣列
-
-  if (!Array.isArray(sortOrder) || sortOrder.length === 0) {
-    return res.status(400).json({ error: '無效的排序數據' });
+  const { score } = req.body; // score 為前端傳入的陣列
+  if (!Array.isArray(score) || score.length === 0) {
+    return res.status(400).json({ error: '無效的分數數據' });
   }
 
   try {
-    // 更新每個排序後的 evaluation，逐條更新 ranking
-    const updatePromises = sortOrder.map(item => {
-      const { evano, ranking } = item; // 從前端獲取 evano 和 ranking
-      const evalUpdateQuery = 'UPDATE `student-project`.`evaluations` SET ranking = ?, update_at = ? WHERE evano = ?';
+    // 用來批量更新每條評分記錄
+    const updatePromises = score.map(item => {
+      const { eva_no, memo, score } = item; // 從前端獲取 no、memo 和 score
+      const evalUpdateQuery = 'UPDATE ESN.evaluations SET score = ?, memo = ? WHERE eva_no = ?';
 
-      // 直接返回 pool.query 的 Promise
-      return pool.query(evalUpdateQuery, [ranking, new Date(), evano]);
+      // 返回 pool.query 的 Promise
+      return pool.query(evalUpdateQuery, [score, memo, eva_no]);
     });
 
     // 等待所有更新完成

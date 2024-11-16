@@ -79,7 +79,8 @@ router.post('/:pro_no', async (req, res) => {
                 SELECT COUNT(a.stu_no) AS total_count
                 FROM ESN.assignments a
                 JOIN collaborators c ON a.col_no = c.col_no
-                WHERE c.pro_no = ? AND a.ass_no LIKE '2%';
+                JOIN evaluations e on a.ass_no = e.ass_no
+                WHERE c.pro_no = ? AND e.phase = 2;;
             `, [pro_no]);
         }
 

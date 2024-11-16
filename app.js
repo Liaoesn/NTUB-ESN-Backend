@@ -24,6 +24,7 @@ const proDeleteRoutes = require('./routes/project/delete');
 const proItemRoute = require('./routes/project/item');
 
 const scoreSort = require('./routes/score/sort');
+const scoreScore = require('./routes/score/score');
 const scoreStudent = require('./routes/score/student');
 const scoreMerge = require('./routes/score/merge');
 const scoreReAssign = require('./routes/score/reAssign');
@@ -73,6 +74,7 @@ app.use('/api/project/item', proItemRoute)  //  歷史專案內容路由
 
 // 評分排序路由
 app.use('/api/score/sort', scoreSort); // 協作老師排序
+app.use('/api/score/score', scoreScore); // 協作老師給分
 app.use('/api/score/student', scoreStudent); // 學生資料展示
 app.use('/api/score/merge', scoreMerge); // 合併排序
 app.use('/api/score/reAssign', scoreReAssign); // 第二次分配
