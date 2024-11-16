@@ -58,7 +58,7 @@ router.post('/:pro_no', async (req, res) => {
                 LEFT JOIN resumes r ON r.stu_no = s.stu_no
                 LEFT JOIN autobiographys au ON au.stu_no = s.stu_no
                 LEFT JOIN student_details sd ON sd.stu_no = s.stu_no
-                JOIN evaluations e ON e.ass_no = a.ass_no
+                JOIN evaluations e ON e.ass_no = a.ass_no AND e.phase = 2
                 WHERE p.pro_no = ?
                 order by IFNULL(e.score, e.eva_no) ASC;
             `, [user_no, pro_no]);
@@ -69,9 +69,9 @@ router.post('/:pro_no', async (req, res) => {
             [completedEvaluations] = await pool.query(`
                 SELECT COUNT(e.eva_no) AS completed_count
                 FROM ESN.evaluations e
-                JOIN assignments a ON a.ass_no = e.ass_no AND a.ass_no LIKE '2%'
+                JOIN assignments a ON a.ass_no = e.ass_no AND a.ass_no
                 JOIN collaborators c ON a.col_no = c.col_no
-                WHERE e.score IS NOT NULL AND c.pro_no = ?;
+                WHERE e.score IS NOT NULL AND c.pro_no = ? AND e.phase = 2;
             `, [pro_no]);
 
             // 查詢協作者負責的總學生數
