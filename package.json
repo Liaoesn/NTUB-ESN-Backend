@@ -16,6 +16,8 @@
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "google-auth-library": "^9.14.1",
+    "math": "^0.0.3",
+    "mathjs": "^13.2.0",
     "mysql2": "^3.11.3",
     "next-iron-session": "^4.2.0",
     "passport": "^0.7.0",
