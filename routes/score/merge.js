@@ -15,12 +15,21 @@ function distributeScores(min, max, numberOfPeople) {
     return scores;
 }
 
+
 // 計算 Z-score 的函數
 function calculateZScores(scores) {
   const scoresArray = scores.map(score => score.score);
   const mean = scoresArray.reduce((acc, score) => acc + score, 0) / scoresArray.length;
   const variance = scoresArray.reduce((acc, score) => acc + Math.pow(score - mean, 2), 0) / scoresArray.length;
   const stdDev = Math.sqrt(variance);
+
+  // 如果標準差為0，則強制 Z-score 為 0
+  if (stdDev === 0) {
+    return scores.map(score => ({
+      stu_no: score.stu_no,
+      zScore: 0
+    }));
+  }
 
   const zScores = scores.map(score => {
     const zScore = (score.score - mean) / stdDev;
@@ -90,9 +99,8 @@ async function getStudentScoresAndRank(pro_no) {
 }
 
 // 設置路由處理函數
-router.get('/', async (req, res) => {
-  const pro_no = req.body.pro_no;
-
+router.post('/', async (req, res) => {
+  const { pro_no } = req.body;
   try {
     const projectQuery = 'SELECT admissions, phase2, share_type FROM ESN.projects WHERE pro_no = ?';
     const projectResult = await pool.query(projectQuery, [pro_no]);
@@ -104,19 +112,59 @@ router.get('/', async (req, res) => {
     // 假設最高分 90，最低分 70，根據排名分配分數
     const scores = distributeScores(70, 90, finalRankingList.length);
 
+    const needsReevaluation = []; // 保存需要重新評分的學生
+    let hasIssues = false; // 用來標記是否有需要重新評分的情況
+
     // 插入或更新合併排序結果及其分數
     const insertPromises = finalRankingList.map((stu_no, index) => {
       const final_rank = index + 1;
       const score = scores[index];
-      const isAdmitted = final_rank <= admissionCount ? '錄取' : '未錄取'; 
-      const updateQuery = 'UPDATE ESN.students SET final_ranking = ?, final_score = ?, admit = ? WHERE stu_no = ?';
+      let isAdmitted = '未錄取';
 
+      // 處理邊界情況
+      if (final_rank === admissionCount) {
+        // 找出與第 `admissionCount` 名分數相同的學生
+        const sameScoreStudents = sortedStudents.filter(s => s.avgZScore === sortedStudents[index].avgZScore);
+        if (sameScoreStudents.length > 1) {
+          // 如果有多名同分學生，標記需要重新評分
+          needsReevaluation.push(...sameScoreStudents);
+          isAdmitted = '需要重新評分';
+          hasIssues = true
+        } else {
+          // 邊界學生沒有同分情況，標記為錄取
+          isAdmitted = '錄取';
+        }
+      } else if (final_rank <= admissionCount) {
+        // 其他排名達到錄取名額的學生
+        isAdmitted = '錄取';
+      }
+
+      // 只有當學生不需要重新評分時才更新資料庫
+      if (isAdmitted !== '需要重新評分') {
+
+      const updateQuery = 'UPDATE ESN.students SET final_ranking = ?, final_score = ?, admit = ? WHERE stu_no = ?';
       return pool.query(updateQuery, [final_rank, score, isAdmitted, stu_no]);
+      }
+      return Promise.resolve(); // 不更新資料庫s
     });
 
     await Promise.all(insertPromises);
 
-    res.json({ success: true, message: '合併排序和分數分配成功儲存' });
+    // 根據是否有問題來回應
+    if (hasIssues) {
+      // 有問題，回傳需要重新評分的學生
+      res.json({
+        success: false,
+        message: '存在需要重新評分的情況',
+        needsReevaluation: needsReevaluation
+      });
+    } else {
+      // 沒問題，成功儲存所有結果
+      res.json({
+        success: true,
+        message: '合併排序和分數分配成功儲存'
+      });
+    }
   } catch (err) {
     res.status(500).json({
       success: false,

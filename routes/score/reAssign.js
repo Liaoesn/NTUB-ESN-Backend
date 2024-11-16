@@ -2,51 +2,39 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
-router.post('/:prono', async (req, res) => {
+router.post('/:pro_no', async (req, res) => {
     try {
-        const prono = req.params.prono;
-        const { phase2, stuno } = req.body;
+        const pro_no = req.params.pro_no;
+        const { phase2, stu_no } = req.body;
         const distributionRound = 2; // 這是第二次分配
-        const assNoPrefix = prono.slice(0, 3);  // 使用專案編號作為 assno 前綴
-        const currentMonth = new Date().getMonth() + 1;  // 當前月份，用於 assno
 
         // 更新 project 的 phase2
-        await pool.query('UPDATE `student-project`.`project` SET phase2 = ? WHERE prono = ?', [phase2, prono]);
+        await pool.query('UPDATE ESN.projects SET phase2 = ? WHERE pro_no = ?', [phase2, pro_no]);
 
         // 查詢協作老師
-        const [collaborators] = await pool.query('SELECT colno FROM `student-project`.`collaborator` WHERE prono = ?', [prono]);
-
+        const [collaborators] = await pool.query('SELECT col_no FROM ESN.collaborators WHERE pro_no = ?', [pro_no]);
         if (!collaborators.length) {
             return res.status(404).json({ error: '找不到協作老師' });
         }
 
         // 檢查傳入的學生學號
-        if (!Array.isArray(stuno) || stuno.length === 0) {
-            return res.status(400).json({ error: 'stuno 應為包含學生學號的陣列' });
+        if (!Array.isArray(stu_no) || stu_no.length === 0) {
+            return res.status(400).json({ error: 'stu_no 應為包含學生學號的陣列' });
         }
 
-        // 查詢現有分配的最大 assno
-        const [existingAssignments] = await pool.query('SELECT assno FROM `student-project`.`assignment` WHERE assno LIKE ?', [`${assNoPrefix}${currentMonth}%`]);
-        let maxAssSuffix = 100;
-        if (existingAssignments.length > 0) {
-            maxAssSuffix = Math.max(...existingAssignments.map(a => parseInt(String(a.assno).slice(-3))));
-        }
-
-        const assignmentQuery = 'INSERT INTO `student-project`.`assignment` (assno, colno, stuno) VALUES (?, ?, ?)';
-        const evaluationQuery = 'INSERT INTO `student-project`.`evaluations` (evano, assno) VALUES (?, ?)';
+        const assignmentQuery = 'INSERT INTO ESN.assignments (col_no, stu_no) VALUES (?, ?)';
+        const evaluationQuery = 'INSERT INTO ESN.evaluations (ass_no, phase) VALUES (?, ?)';
 
         // 將每位學生分配給每位老師並創建新的 evaluations 記錄
-        for (const colno of collaborators) {
-            for (const studentId of stuno) {
-                // 在生成的 assno 前加上分配回合的標記，例如 "2" 用於第二次分配
-                const newAssNo = `${distributionRound}${assNoPrefix}${String(currentMonth).padStart(2, '0')}${String(maxAssSuffix + 1).padStart(3, '0')}`; // 生成新的 assno
-                await pool.query(assignmentQuery, [newAssNo, colno.colno, studentId]);
+        for (const collaborator of collaborators) {
+            for (const studentId of stu_no) {
+                // 插入分配記錄
+                const [assignmentResult] = await pool.query(assignmentQuery, [collaborator.col_no, studentId]);
 
-                // 生成 evano，規則為 assno 後加固定數 5
-                const evaNo = `${newAssNo}5`;
-                await pool.query(evaluationQuery, [evaNo, newAssNo]); // 插入 evaluations 記錄
+                const ass_no = assignmentResult.insertId;  // 獲取插入的 ass_no
 
-                maxAssSuffix++; // 增加 assno 序號
+                // 插入評分記錄
+                await pool.query(evaluationQuery, [ass_no, distributionRound]);
             }
         }
 
