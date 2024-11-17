@@ -77,7 +77,7 @@ async function getStudentScoresAndRank(pro_no, phase) {
 }
 
 // 合併排序邏輯
-async function mergeSort(pro_no, admissionCount, phase2Exists) {
+async function mergeSort(pro_no, phase2Exists) {
   const firstSort = await getStudentScoresAndRank(pro_no, 1);
 
   if (!phase2Exists) {
@@ -112,7 +112,7 @@ router.post('/', async (req, res) => {
     const [projectResult] = await pool.query(projectQuery, [pro_no]);
     const { admissions: admissionCount, phase2 } = projectResult[0];
 
-    const sortedStudents = await mergeSort(pro_no, admissionCount, !!phase2);
+    const sortedStudents = await mergeSort(pro_no, !!phase2);
     const finalRankingList = sortedStudents.map(student => student.stu_no);
     const scores = distributeScores(70, 90, finalRankingList.length);
 

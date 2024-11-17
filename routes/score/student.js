@@ -26,7 +26,7 @@ router.post('/:pro_no', async (req, res) => {
                 LEFT JOIN autobiographys au ON au.stu_no = s.stu_no
                 LEFT JOIN student_details sd ON sd.stu_no = s.stu_no
                 JOIN evaluations e ON e.ass_no = a.ass_no
-                WHERE p.pro_no = ?
+                WHERE p.pro_no = ? AND e.phase = 1
                 order by IFNULL(e.score, e.eva_no) ASC;
             `, [user_no, pro_no]);
 
@@ -38,7 +38,7 @@ router.post('/:pro_no', async (req, res) => {
                 FROM ESN.evaluations e
                 JOIN assignments a ON a.ass_no = e.ass_no
                 JOIN collaborators c ON a.col_no = c.col_no
-                WHERE e.score IS NOT NULL AND c.pro_no = ?;
+                WHERE e.score IS NOT NULL AND c.pro_no = ? AND e.phase = 1;
             `, [pro_no]);
 
             // 查詢協作者負責的總學生數
@@ -46,7 +46,8 @@ router.post('/:pro_no', async (req, res) => {
                 SELECT COUNT(a.stu_no) AS total_count
                 FROM ESN.assignments a
                 JOIN collaborators c ON a.col_no = c.col_no
-                WHERE c.pro_no = ?;
+                JOIN evaluations e on a.ass_no = e.ass_no
+                WHERE c.pro_no = ? AND e.phase = 1;
             `, [pro_no]);        
         }else{
             [rows] = await pool.query(`
@@ -80,7 +81,7 @@ router.post('/:pro_no', async (req, res) => {
                 FROM ESN.assignments a
                 JOIN collaborators c ON a.col_no = c.col_no
                 JOIN evaluations e on a.ass_no = e.ass_no
-                WHERE c.pro_no = ? AND e.phase = 2;;
+                WHERE c.pro_no = ? AND e.phase = 2;
             `, [pro_no]);
         }
 

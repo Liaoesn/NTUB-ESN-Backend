@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
     // 等待所有更新完成
     await Promise.all(updatePromises);
 
-    res.json({ success: true, message: '排序成功儲存' });
+    res.json({ success: true, message: '分數或備註已成功儲存' });
   } catch (error) {
     console.error('資料庫更新過程中出錯:', error);
     res.status(500).json({ error: '伺服器錯誤' });

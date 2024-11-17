@@ -8,14 +8,10 @@ router.get('/', async (req, res) => {
     }
     
     const { year, academic } = req.query;
-    const user_no = req.session.user.user_no; // 從 session 中取得 user_no
-
     try{
         // 基本查詢語句
         let query = `SELECT CEILING(COUNT(*) / 5) as page 
                     FROM ESN.projects p
-                    JOIN ESN.users u
-                    ON p.create_id = u.user_no
                     WHERE p.status = '已關閉'
                 `;
 
