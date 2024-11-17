@@ -5,7 +5,7 @@ const pool = require('../../lib/db');
 // 提交最終排序
 router.post('/', async (req, res) => {
   const { data } = req.body; // score 為前端傳入的陣列
-  if (!Array.isArray(data) || score.length === 0) {
+  if (!Array.isArray(data) || data.length === 0) {
     return res.status(400).json({ error: '無效的分數數據' });
   }
 
