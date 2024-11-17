@@ -4,7 +4,7 @@ const pool = require('../../lib/db');
 
 // 保存
 router.post('/save', async (req, res) => {
-  const { data } = req.body; // evaluations 為前端傳入的陣列
+  const { evaluations } = req.body; // evaluations 為前端傳入的陣列
 
   if (!Array.isArray(evaluations) || evaluations.length === 0) {
     return res.status(400).json({ error: '無效的評分數據' });
@@ -13,11 +13,11 @@ router.post('/save', async (req, res) => {
   try {
     // 更新每個被更改的地方
     const updatePromises = evaluations.map(item => {
-      const { evano, score } = item; // 從前端獲取 evano 和 score
+      const { evano, score, memo } = item; // 從前端獲取 evano 和 score
       const evalUpdateQuery = 'UPDATE ESN.evaluations SET score = ?, memo = ? WHERE eva_no = ?';
 
       // 直接返回 pool.query 的 Promise
-      return pool.query(evalUpdateQuery, [score, new Date(), evano]);
+      return pool.query(evalUpdateQuery, [score,  memo, evano]);
     });
 
     // 等待所有更新完成
@@ -32,7 +32,7 @@ router.post('/save', async (req, res) => {
 
 // 完成
 router.post('/complete', async (req, res) => {
-  const { data } = req.body;
+  const { evaluations } = req.body;
 
   if (!Array.isArray(evaluations) || evaluations.length === 0) {
     return res.status(400).json({ error: '無效的評分數據' });
@@ -49,9 +49,9 @@ router.post('/complete', async (req, res) => {
 
     // 更新
     const updatePromises = evaluations.map(item => {
-      const { evano, score } = item;
+      const { evano, score, memo } = item;
       const updateQuery = 'UPDATE ESN.evaluations SET score = ?, memo = ? WHERE eva_no = ?';
-      return pool.query(updateQuery, [score, new Date(), evano]);
+      return pool.query(updateQuery, [score, memo, evano]);
     });
 
     await Promise.all(updatePromises);
