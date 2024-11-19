@@ -21,8 +21,7 @@ const createProjectInDb = async (ProjectInfo) => {
 
     const eduCode = currentedu[ProjectInfo.prodescription];
 
-    const [result] = await pool.query('SELECT prono FROM `student-project`.`project` ORDER BY prono DESC LIMIT 1');
-    let newProNo;
+    const [result] = await pool.query('SELECT pro_no FROM ESN.projects ORDER BY pro_no DESC LIMIT 1');
 
     if (result.length > 0) {
         const latestProNo = result[0].prono;
@@ -32,83 +31,31 @@ const createProjectInDb = async (ProjectInfo) => {
         newProNo = `${currentYear}${eduCode}001`;
     }
 
-    
-    await pool.query('INSERT INTO `student-project`.`project` (prono, proname, prodescription, startdate, phase1, enddate, create_id, state, admissions, share_type ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-        parseInt(newProNo), ProjectInfo.proname, ProjectInfo.prodescription, ProjectInfo.startdate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.userno, '開放中', ProjectInfo.admissions, ProjectInfo.share_type
+    await pool.query('INSERT INTO `ESN`.`projects` (pro_name, pro_year, pro_academic , start_date, phase1, end_date, create_id, status, admissions ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+        ProjectInfo.proname,currentYear ,ProjectInfo.prodescription , currentDate, ProjectInfo.phase1, ProjectInfo.enddate, ProjectInfo.user_no, '開放中', ProjectInfo.admissions
     ]);
 }
-
-const addStudentInDb = async (prono) => {
-    const [result] = await pool.query('SELECT stuno FROM `student-project`.`student` WHERE prono = ? ORDER BY stuno DESC LIMIT 1', [prono]);
-    let newStuNo;
-
-    if (result.length > 0) {
-        const latestStuNo = result[0].stuno;
-        const latestSequence = parseInt(latestStuNo.slice(-3)) + 1; 
-        newStuNo = `${prono.slice(0, 5)}${String(latestSequence).padStart(3, '0')}`; 
-    } else {
-        // 如果沒有任何記錄，從 001 開始
-        newStuNo = `${prono.slice(0, 5)}001`; 
-    }
-
-
-    await pool.query('INSERT INTO `student-project`.`student` (stuno, prono) VALUES (?, ?)', [newStuNo, prono]);
-
-    // 新增學生備註資料
-    await addStudentDetailsInDb(newStuNo);
-    // 新增學生履歷資料
-    await addresumeInDb(newStuNo);
-    // 新增學生自傳資料
-    await addautobiographyInDb(newStuNo);
-
-    return newStuNo; 
-}
-
-// 新增備注編號
-const addStudentDetailsInDb = async (stuno) => {
-    const detailno = `${stuno}9`; // detailno 是 stuno 後加上 9
-    await pool.query('INSERT INTO `student-project`.`studetails` (stuno, detailno) VALUES (?, ?)', [stuno, detailno]);
-};
-
-// 新增履歷編號
-const addresumeInDb = async (stuno) => {
-    const resno = `${stuno}8`; //  是 stuno 後加上 8
-    await pool.query('INSERT INTO `student-project`.`resume` (stuno, resno) VALUES (?, ?)', [stuno, resno]);
-};
-
-// 新增自傳編號
-const addautobiographyInDb = async (stuno) => {
-    const autno = `${stuno}7`; //  是 stuno 後加上 7
-    await pool.query('INSERT INTO `student-project`.`autobiography` (stuno, autno) VALUES (?, ?)', [stuno, autno]);
-};
-
-
 
 // 新增專案
 router.post('/', async (req, res) => {
     try{
-        // const userno = req.session.user.userno; 
-        const { proname, prodescription, startdate, phase1, enddate, userno, admissions, share_type  } = req.body;
+        const { proname, prodescription, phase1, enddate, user_no, admissions  } = req.body;
 
-        console.log([proname, prodescription, startdate, phase1, enddate, userno, admissions, share_type]);
+        console.log([proname, prodescription, phase1, enddate, user_no, admissions]);
 
         // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !startdate || !phase1 || !enddate || !admissions || !share_type ) {
+        if (!proname || !prodescription || !phase1 || !enddate || !admissions ) {
             return res.status(400).json({ message: '所有欄位都是必填的' });
         }
 
-        const ProjectInfo = {
+        const ProjectInfo = { 
             proname, 
             prodescription,
-            startdate,
-            phase1,
-            enddate,
-            userno,
-            admissions,
-            share_type
+            phase1, 
+            enddate, 
+            user_no, 
+            admissions
         };
-
-        // 呼叫 createProjectInDb 來新增專案
         await createProjectInDb(ProjectInfo);
 
         // 新增成功
