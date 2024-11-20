@@ -2,14 +2,40 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../lib/db');
 
+router.get('/:prono', async (req, res) => {
+  try {
+    const { prono } = req.query;
+    const docnumber = await pool.query(
+      'SELECT COUNT(*) AS total_students FROM ESN.students WHERE `pro_no` = ? ;', [prono]
+    )
+    const [teacher] = await pool.query(
+    'SELECT  u.user_name FROM ESN.collaborators as c left JOIN ESN.users as u ON c.user_no = u.user_no WHERE c.pro_no = ?;', [prono]
+    )
+    const [ProjectRows] =
+      await pool.query(
+        'SELECT pro_no, pro_name, pro_academic, phase1, end_date, share_type, admissions FROM ESN.projects WHERE `pro_no` = ? ;', [prono]);
+        ProjectRows.push(docnumber[0][0])
+        ProjectRows.push({'teachers':teacher})
+        console.log(ProjectRows)
+    if (ProjectRows.length === 0) {
+      return res.status(404).json({ error: '未找到此專案' });
+    } 
+    console.log()
+    res.json(ProjectRows);
+  } catch (error) {
+    console.error('查詢資料時發生錯誤:', error);
+    res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
+  }
+});
+
 // 專案名稱
-router.post('/:pro_no', async (req, res) => {
-    const { name } = req.body;  // 接收從前端傳來的資料
-    const { pro_no } = req.query;  // 從 query 參數中取得 pro_no
+router.post('/name', async (req, res) => {
+    const { title, prodescription } = req.body;  // 接收從前端傳來的資料
+    const { prono } = req.query;  // 從 query 參數中取得 pro_no
   
     // 檢查是否有 pro_no 和要更新的內容
-    if (!pro_no) {
-      return res.status(400).json({ message: 'pro_no is required' });
+    if (!prono) {
+      return res.status(400).json({ message: 'prono is required' });
     }
     if (!title) {
       return res.status(400).json({ message: 'title is required' });
@@ -17,8 +43,8 @@ router.post('/:pro_no', async (req, res) => {
   
     try {
       // 更新 MySQL 數據庫中的 projects 表
-      const sql = `UPDATE ESN.projects SET pro_name = ? WHERE pro_no = ?`;
-      const values = [name, pro_no];
+      const sql = `UPDATE ESN.projects SET pro_name = ?, pro_academic = ? WHERE pro_no = ?`;
+      const values = [title, prodescription , prono];
       await pool.query(sql, values);
   
       res.status(200).json({ message: 'Project updated successfully' });
@@ -63,7 +89,7 @@ router.post('/date', async (req, res) => {
   
   // 錄取人數
   router.post('/admissions', async (req, res) => {
-    const { admissions, pro_no } = req.body; // 取得 admissions 和 pro_no
+    const { admissions, prono } = req.body; // 取得 admissions 和 pro_no
   
     // SQL 更新語句
     const query = `UPDATE ESN.projects SET admissions = ? WHERE pro_no = ?`;
@@ -71,7 +97,8 @@ router.post('/date', async (req, res) => {
     if (admissions) {
       try {
         // 執行查詢，並將結果存入 result 變數
-        const [result] = await pool.query(query, [admissions, pro_no]);
+        console.log(123)
+        const [result] = await pool.query(query, [admissions, prono]);
   
         // 檢查是否有更新行數 (affectedRows)
         if (result.affectedRows > 0) {
