@@ -12,6 +12,10 @@ router.post('/', async (req, res) => {
     SELECT stu_no FROM ESN.students WHERE pro_no = ?`;
     const [stu_no] = await pool.query(query, [pro_no]);
 
+    console.log(pro_no);
+    console.log(col_no);
+    console.log(teachersPerStudent)
+
     // 驗證資料
     if (teachersPerStudent <= 0) {
       return res.status(400).json({ error: '每位學生需要分配的老師數量必須大於 0' });

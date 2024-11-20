@@ -72,11 +72,6 @@ router.post('/addStudent', async (req, res) => {
     try {
         const { prono } = req.body;
 
-        // 檢查必填欄位是否存在
-        if (!prono) {
-            return res.status(400).json({ message: 'prono 是必填的' });
-        }
-
         // 呼叫 addStudentInDb 來新增學生，並取得新生成的 stuno
         const newStuNo = await addStudentInDb(prono);
 
@@ -88,5 +83,39 @@ router.post('/addStudent', async (req, res) => {
     }
 });
 
+router.get('/search/teacher', async (req, res) => {
+    try {
+      const teacherDB = await pool.query(
+        'SELECT user_no,user_name, permissions FROM `ESN`.users where  permissions = 0;'
+      );
+
+      const max = await pool.query(
+        // 'SELECT  FROM `ESN`.users where  permissions = 0;'
+        'SELECT MAX(pro_no) AS max_score FROM `ESN`.projects;'
+      );
+
+      if (teacherDB.length === 0) {
+        return res.status(404).json({ error: '未找此專案' });
+      }
+      console.log(teacherDB)
+      res.json({teacherDB, max}); // 返回查询到的所有数据
+    } catch (error) {
+      console.error('查詢資料時發生錯誤:', error);
+      res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
+    }
+});
+router.get('/projectid', async (req, res) => {
+    try {
+      const max = await pool.query(
+        // 'SELECT  FROM `ESN`.users where  permissions = 0;'
+        'SELECT MAX(pro_no) AS max_score FROM `ESN`.projects;'
+      );
+
+      res.json(max); // 返回查询到的所有数据
+    } catch (error) {
+      console.error('查詢資料時發生錯誤:', error);
+      res.status(500).json({ error: '伺服器錯誤，請稍後再試' });
+    }
+});
 
 module.exports = router;
