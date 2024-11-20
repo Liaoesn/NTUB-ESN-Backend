@@ -5,13 +5,14 @@ const pool = require('../../lib/db');
 // 學生分配給老師並更新評分表 API
 router.post('/', async (req, res) => {
   try {
-    const { stu_no, col_no, teachersPerStudent } = req.body;
+    const { pro_no, col_no, teachersPerStudent } = req.body;
     const distributionRound = 1; // 這是第一次分配
 
+    const query = `
+    SELECT stu_no FROM ESN.students WHERE pro_no = ?`;
+    const [stu_no] = await pool.query(query, [pro_no]);
+
     // 驗證資料
-    if (!Array.isArray(stu_no) || !Array.isArray(col_no)) {
-      return res.status(400).json({ error: '學生與老師資料需為陣列' });
-    }
     if (teachersPerStudent <= 0) {
       return res.status(400).json({ error: '每位學生需要分配的老師數量必須大於 0' });
     }
