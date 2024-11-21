@@ -18,6 +18,7 @@
     "google-auth-library": "^9.14.1",
     "math": "^0.0.3",
     "mathjs": "^13.2.0",
+    "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.3",
     "next-iron-session": "^4.2.0",
     "passport": "^0.7.0",

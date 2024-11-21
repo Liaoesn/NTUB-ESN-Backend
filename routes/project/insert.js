@@ -36,36 +36,55 @@ const createProjectInDb = async (ProjectInfo) => {
     ]);
 }
 
-// 新增專案
-router.post('/', async (req, res) => {
-    try{
-        const { proname, prodescription, phase1, enddate, user_no, admissions  } = req.body;
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // 設定檔案暫存目錄
 
-        console.log([proname, prodescription, phase1, enddate, user_no, admissions]);
+router.post('/', upload.single('file'), async (req, res) => {
+    try {
+        const { proname, prodescription, phase1, enddate, user_no, admissions } = req.body;
+        const filePath = req.file.path; // 上傳檔案的路徑
+        console.log('接收到的檔案路徑:', filePath);
 
-        // 檢查必填欄位是否存在
-        if (!proname || !prodescription || !phase1 || !enddate || !admissions ) {
-            return res.status(400).json({ message: '所有欄位都是必填的' });
-        }
-
-        const ProjectInfo = { 
-            proname, 
-            prodescription,
-            phase1, 
-            enddate, 
-            user_no, 
-            admissions
-        };
+        // 處理專案新增邏輯
+        const ProjectInfo = { proname, prodescription, phase1, enddate, user_no, admissions };
         await createProjectInDb(ProjectInfo);
 
-        // 新增成功
-            res.status(201).json({ message: '專案新增成功' });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: '伺服器錯誤，無法新增專案' });
-        }
-        
+        res.status(201).json({ message: '專案新增成功' });
+    } catch (error) {
+        console.error('新增專案時發生錯誤:', error);
+        res.status(500).json({ message: '伺服器錯誤，無法新增專案' });
+    }
 });
+// 新增專案
+// router.post('/', async (req, res) => {
+//     try{
+//         const { files,proname, prodescription, phase1, enddate, user_no, admissions  } = req.body;
+
+//         console.log([proname, prodescription, phase1, enddate, user_no, admissions]);
+//         console.log(files)
+//         // 檢查必填欄位是否存在
+//         if (!proname || !prodescription || !phase1 || !enddate || !admissions ) {
+//             return res.status(400).json({ message: '所有欄位都是必填的' });
+//         }
+
+//         const ProjectInfo = { 
+//             proname, 
+//             prodescription,
+//             phase1, 
+//             enddate, 
+//             user_no, 
+//             admissions
+//         };
+//         await createProjectInDb(ProjectInfo);
+
+//         // 新增成功
+//             res.status(201).json({ message: '專案新增成功' });
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).json({ message: '伺服器錯誤，無法新增專案' });
+//         }
+        
+// });
 
 // 新增student table
 router.post('/addStudent', async (req, res) => {
